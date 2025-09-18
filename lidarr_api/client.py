@@ -12,7 +12,7 @@ class LidarrClient:
                  api_key: str,
                  retry_total: int = 3,
                  retry_backoff_factor: float = 0.3,
-                 timeout: int = 30,
+                 timeout: int = 60,  # Increased default timeout
                  rate_limit_per_second: float = 2.0):
         """
         Initialize the Lidarr API client.
@@ -22,7 +22,7 @@ class LidarrClient:
             api_key: Your Lidarr API key
             retry_total: Number of retries for failed requests
             retry_backoff_factor: Backoff factor between retries
-            timeout: Request timeout in seconds
+            timeout: Request timeout in seconds (default 60)
             rate_limit_per_second: Maximum number of requests per second
         """
         self.base_url = base_url.rstrip('/')
@@ -45,7 +45,9 @@ class LidarrClient:
         retry_strategy = Retry(
             total=retry_total,
             backoff_factor=retry_backoff_factor,
-            status_forcelist=[429, 500, 502, 503, 504]
+            status_forcelist=[429, 500, 502, 503, 504],
+            allowed_methods=["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE", "POST"],  # Allow retries on all methods
+            raise_on_status=True
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
         self.session.mount("http://", adapter)
