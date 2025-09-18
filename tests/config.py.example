@@ -1,0 +1,5 @@
+"""Test configuration settings"""
+
+# Lidarr server configuration
+LIDARR_URL = "http://localhost:8686"  # Replace with your Lidarr server URL
+LIDARR_API_KEY = "your-api-key-here"  # Replace with your Lidarr API key
