@@ -93,6 +93,10 @@ class LidarrClient:
         """Get artist information by ID."""
         return self._request('GET', f'artist/{artist_id}')
 
+    def get_all_artists(self) -> List[Dict[str, Any]]:
+        """Get all artists in the library."""
+        return self._request('GET', 'artist')
+
     def search_artist(self, term: str) -> List[Dict[str, Any]]:
         """Search for artists."""
         return self._request('GET', 'artist/lookup', params={'term': term})

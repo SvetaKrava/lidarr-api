@@ -7,6 +7,11 @@ setup(
     install_requires=[
         "requests>=2.25.0",
     ],
+    entry_points={
+        'console_scripts': [
+            'lidarr-search=examples.search_artist:main',
+        ],
+    },
     author="jdrunyan",
     description="A Python library for interacting with the Lidarr API",
     long_description=open("README.md").read(),
