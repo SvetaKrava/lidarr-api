@@ -14,7 +14,7 @@ class Config:
         """Load settings from config file."""
         if not os.path.exists(self.config_path):
             return {}
-        
+
         try:
             with open(self.config_path, 'r') as f:
                 return json.load(f)
