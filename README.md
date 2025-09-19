@@ -14,8 +14,9 @@ pip install lidarr-api
 
 ```python
 from lidarr_api import LidarrClient
+from lidarr_api.config import Config
 
-# Initialize the client with custom settings
+# Initialize with explicit connection settings
 client = LidarrClient(
     base_url='http://localhost:8686',
     api_key='your-api-key',
@@ -23,6 +24,18 @@ client = LidarrClient(
     retry_backoff_factor=0.3,     # Backoff factor between retries
     timeout=60,                   # Request timeout in seconds (default increased from 30)
     rate_limit_per_second=2.0     # Maximum requests per second
+)
+
+# Or load connection settings from config
+config = Config()
+settings = config.get_connection_settings()
+if settings:
+    client = LidarrClient(**settings)
+
+# Save connection settings for later use
+config.save_connection_settings(
+    base_url='http://localhost:8686',
+    api_key='your-api-key'
 )
 
 # Get system status
@@ -43,23 +56,25 @@ albums = client.get_albums_by_artist(artist_id=1234)
 The package includes a command-line tool for searching and adding artists:
 
 ```bash
-lidarr-search "Artist Name" --api-key YOUR_API_KEY [options]
+lidarr-search "Artist Name" [options]
 ```
 
 Options:
 
-- `--url`: Lidarr server URL (default: <http://localhost:8686>)
+- `--url`: Lidarr server URL (default: from config or <http://localhost:8686>)
+- `--api-key`: Lidarr API key (default: from config)
 - `--timeout`: Request timeout in seconds (default: 60)
 - `--retries`: Number of retries for failed requests (default: 3)
 - `--force-search`: Trigger album search after adding artist
 - `--use-defaults`: Use saved configuration defaults
 - `--save-defaults`: Save current selections as defaults
 - `--config`: Path to config file (default: ~/.config/lidarr-api/defaults.json)
+- `--save-connection`: Save URL and API key to config
 - `--debug`: Enable debug output
 
 ### Configuration Management
 
-The library supports saving and loading default configurations for artist addition:
+The library supports saving and loading both connection settings and artist addition defaults:
 
 ```python
 from lidarr_api import LidarrClient
@@ -68,10 +83,18 @@ from lidarr_api.config import Config
 # Initialize with custom config path
 config = Config('/path/to/config.json')
 
-# Get saved defaults
-defaults = config.get_artist_defaults()
+# Save connection settings
+config.save_connection_settings(
+    base_url='http://localhost:8686',
+    api_key='your-api-key'
+)
 
-# Save new defaults
+# Load connection settings
+settings = config.get_connection_settings()
+if settings:
+    client = LidarrClient(**settings)
+
+# Save artist addition defaults
 config.save_artist_defaults(
     root_folder={"path": "/music"},
     quality_profile={"id": 1},
@@ -80,6 +103,9 @@ config.save_artist_defaults(
     album_monitor_option=1,  # 1=All, 2=Future, 3=None
     tags=[{"id": 1, "label": "rock"}]
 )
+
+# Get saved artist addition defaults
+defaults = config.get_artist_defaults()
 ```
 
 ## Features

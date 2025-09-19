@@ -9,23 +9,23 @@ class Config:
     """
     Configuration management for Lidarr API client.
 
-    This class handles saving and loading of default settings for artist addition,
-    making it easier to maintain consistent configurations across multiple operations.
-
-    The configuration is stored in JSON format and includes settings for:
-    - Root folder path
-    - Quality profile
-    - Metadata profile
-    - Monitored status
-    - Album monitoring options
-    - Tags
+    This class handles saving and loading of default settings for:
+    - Connection settings (base URL and API key)
+    - Artist addition defaults (root folder, profiles, etc.)
 
     Args:
         config_path: Path to the config file. Defaults to ~/.config/lidarr-api/defaults.json
 
     Example:
         >>> config = Config()
-        >>> # Save defaults
+        >>> # Save connection settings
+        >>> config.save_connection_settings(
+        ...     base_url='http://localhost:8686',
+        ...     api_key='your-api-key'
+        ... )
+        >>> # Later, load the settings
+        >>> settings = config.get_connection_settings()
+        >>> # Save artist defaults
         >>> config.save_artist_defaults(
         ...     root_folder={"path": "/music"},
         ...     quality_profile={"id": 1},
@@ -87,3 +87,17 @@ class Config:
     def get_artist_defaults(self) -> Optional[Dict[str, Any]]:
         """Get saved artist addition defaults."""
         return self.settings.get('artist_defaults')
+
+    def save_connection_settings(self,
+                               base_url: str,
+                               api_key: str) -> None:
+        """Save connection settings."""
+        self.settings['connection'] = {
+            'base_url': base_url.rstrip('/'),
+            'api_key': api_key
+        }
+        self.save()
+
+    def get_connection_settings(self) -> Optional[Dict[str, str]]:
+        """Get saved connection settings."""
+        return self.settings.get('connection')
