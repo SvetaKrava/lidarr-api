@@ -7,6 +7,7 @@ import traceback
 import time
 import logging
 from lidarr_api import LidarrClient
+from lidarr_api.config import Config
 
 def format_overview(text, width=70):
     if not text:
@@ -30,7 +31,7 @@ def retry_with_backoff(func, max_retries=3, initial_wait=2.0, backoff_factor=2.0
 
     raise last_exception
 
-def get_root_folder_selection(client):
+def get_root_folder_selection(client, defaults=None):
     """Get user selection of root folder."""
     try:
         print("\nFetching available root folders...")
@@ -39,6 +40,13 @@ def get_root_folder_selection(client):
         if not root_folders:
             print("No root folders configured in Lidarr!")
             return None
+
+        # If using defaults and a default path exists, find it
+        if defaults and 'root_folder_path' in defaults:
+            for folder in root_folders:
+                if folder['path'] == defaults['root_folder_path']:
+                    print(f"\nUsing default root folder: {folder['path']}")
+                    return folder
 
         print("\nAvailable root folders:")
         for idx, folder in enumerate(root_folders, 1):
@@ -62,7 +70,7 @@ def get_root_folder_selection(client):
         print(f"Error fetching root folders: {str(e)}")
         return None
 
-def get_quality_profile_selection(client):
+def get_quality_profile_selection(client, defaults=None):
     """Get user selection of quality profile."""
     try:
         print("\nFetching quality profiles...")
@@ -71,6 +79,13 @@ def get_quality_profile_selection(client):
         if not profiles:
             print("No quality profiles found in Lidarr!")
             return None
+
+        # If using defaults and a default profile exists, find it
+        if defaults and 'quality_profile_id' in defaults:
+            for profile in profiles:
+                if profile['id'] == defaults['quality_profile_id']:
+                    print(f"\nUsing default quality profile: {profile['name']}")
+                    return profile
 
         print("\nAvailable quality profiles:")
         for idx, profile in enumerate(profiles, 1):
@@ -93,7 +108,7 @@ def get_quality_profile_selection(client):
         print(f"Error fetching quality profiles: {str(e)}")
         return None
 
-def get_metadata_profile_selection(client):
+def get_metadata_profile_selection(client, defaults=None):
     """Get user selection of metadata profile."""
     try:
         print("\nFetching metadata profiles...")
@@ -102,6 +117,13 @@ def get_metadata_profile_selection(client):
         if not profiles:
             print("No metadata profiles found in Lidarr!")
             return None
+
+        # If using defaults and a default profile exists, find it
+        if defaults and 'metadata_profile_id' in defaults:
+            for profile in profiles:
+                if profile['id'] == defaults['metadata_profile_id']:
+                    print(f"\nUsing default metadata profile: {profile['name']}")
+                    return profile
 
         print("\nAvailable metadata profiles:")
         for idx, profile in enumerate(profiles, 1):
@@ -124,8 +146,13 @@ def get_metadata_profile_selection(client):
         print(f"Error fetching metadata profiles: {str(e)}")
         return None
 
-def get_monitored_option():
+def get_monitored_option(defaults=None):
     """Get user selection for monitored status."""
+    if defaults and 'monitored' in defaults:
+        monitored = defaults['monitored']
+        print(f"\nUsing default monitored setting: {'Yes' if monitored else 'No'}")
+        return monitored
+
     print("\nMonitor this artist?")
     print("1. Yes")
     print("2. No")
@@ -142,8 +169,18 @@ def get_monitored_option():
         except ValueError:
             print("Please enter a valid number")
 
-def get_album_monitor_option():
+def get_album_monitor_option(defaults=None):
     """Get user selection for album monitoring."""
+    if defaults and 'album_monitor_option' in defaults:
+        option = defaults['album_monitor_option']
+        monitor_text = {
+            1: "All albums",
+            2: "Future albums only",
+            3: "None"
+        }[option]
+        print(f"\nUsing default album monitoring: {monitor_text}")
+        return option
+
     print("\nSelect which albums to monitor:")
     print("1. All albums")
     print("2. Future albums only")
@@ -161,12 +198,21 @@ def get_album_monitor_option():
         except ValueError:
             print("Please enter a valid number")
 
-def get_tags_selection(client):
+def get_tags_selection(client, defaults=None):
     """Get user selection of tags."""
     try:
         print("\nFetching available tags...")
         tags = client.get_tags()
         selected_tags = []
+
+        # If using defaults and default tags exist, find them
+        if defaults and 'tag_ids' in defaults:
+            for tag in tags:
+                if tag['id'] in defaults['tag_ids']:
+                    selected_tags.append(tag)
+            if selected_tags:
+                print("\nUsing default tags:", ", ".join(t['label'] for t in selected_tags))
+                return selected_tags
 
         while True:
             print("\nCurrent tags:", ", ".join([t['label'] for t in selected_tags]) or "None")
@@ -249,19 +295,25 @@ def main():
     parser.add_argument('--timeout', type=int, default=60, help='Timeout in seconds for API requests')
     parser.add_argument('--retries', type=int, default=3, help='Number of retries for failed requests')
     parser.add_argument('--force-search', action='store_true', help='Force search for albums after adding artist')
+    parser.add_argument('--use-defaults', action='store_true', help='Use saved defaults for artist addition')
+    parser.add_argument('--save-defaults', action='store_true', help='Save selections as defaults')
+    parser.add_argument('--config', help='Path to config file (default: ~/.config/lidarr-api/defaults.json)')
     args = parser.parse_args()
 
     # Set up logging
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(level=log_level)
 
-    # Initialize the client with custom settings
+    # Initialize the client and config
     client = LidarrClient(
         base_url=args.url,
         api_key=args.api_key,
         retry_total=args.retries,
         timeout=args.timeout
     )
+    
+    config = Config(args.config)
+    defaults = config.get_artist_defaults() if args.use_defaults else None
 
     try:
         # Search for the artist
@@ -328,35 +380,35 @@ def main():
                     print(f"\nSelected artist: {selected_artist['artistName']}")
 
                     # Get root folder selection
-                    root_folder = get_root_folder_selection(client)
+                    root_folder = get_root_folder_selection(client, defaults)
                     if not root_folder:
                         print("Root folder selection cancelled")
                         return 0
                     print(f"\nSelected root folder: {root_folder['path']}")
 
                     # Get quality profile selection
-                    quality_profile = get_quality_profile_selection(client)
+                    quality_profile = get_quality_profile_selection(client, defaults)
                     if not quality_profile:
                         print("Quality profile selection cancelled")
                         return 0
                     print(f"\nSelected quality profile: {quality_profile['name']}")
 
                     # Get metadata profile selection
-                    metadata_profile = get_metadata_profile_selection(client)
+                    metadata_profile = get_metadata_profile_selection(client, defaults)
                     if not metadata_profile:
                         print("Metadata profile selection cancelled")
                         return 0
                     print(f"\nSelected metadata profile: {metadata_profile['name']}")
 
                     # Get monitored status
-                    monitored = get_monitored_option()
+                    monitored = get_monitored_option(defaults)
                     if monitored is None:
                         print("Monitored selection cancelled")
                         return 0
                     print(f"\nMonitored: {'Yes' if monitored else 'No'}")
 
                     # Get album monitor option
-                    album_option = get_album_monitor_option()
+                    album_option = get_album_monitor_option(defaults)
                     if album_option is None:
                         print("Album monitor selection cancelled")
                         return 0
@@ -368,7 +420,7 @@ def main():
                     print(f"\nMonitoring: {album_monitor}")
 
                     # Get tags
-                    tags = get_tags_selection(client)
+                    tags = get_tags_selection(client, defaults)
                     if tags is None:
                         print("Tag selection cancelled")
                         return 0
@@ -376,6 +428,19 @@ def main():
                         print("\nSelected tags:", ", ".join(t['label'] for t in tags))
                     else:
                         print("\nNo tags selected")
+
+                    # Save defaults if requested
+                    if args.save_defaults:
+                        print("\nSaving current selections as defaults...")
+                        config.save_artist_defaults(
+                            root_folder,
+                            quality_profile,
+                            metadata_profile,
+                            monitored,
+                            album_option,
+                            tags
+                        )
+                        print("Defaults saved successfully!")
 
                     # After collecting all information
                     print("\nPreparing to add artist...")
