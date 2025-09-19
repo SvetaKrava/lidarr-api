@@ -335,3 +335,10 @@ class LidarrClient:
     def get_metadata_profile(self, profile_id: int) -> Dict[str, Any]:
         """Get a specific metadata profile by ID."""
         return self._request('GET', f'metadataprofile/{profile_id}')
+
+    def search_artist_albums(self, artist_id: int) -> Dict[str, Any]:
+        """Trigger a search for all albums by an artist."""
+        return self._request('POST', 'command', json={
+            'name': 'ArtistSearch',
+            'artistIds': [artist_id]
+        })
