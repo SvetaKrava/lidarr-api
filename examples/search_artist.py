@@ -30,6 +30,216 @@ def retry_with_backoff(func, max_retries=3, initial_wait=2.0, backoff_factor=2.0
 
     raise last_exception
 
+def get_root_folder_selection(client):
+    """Get user selection of root folder."""
+    try:
+        print("\nFetching available root folders...")
+        root_folders = client.get_root_folders()
+
+        if not root_folders:
+            print("No root folders configured in Lidarr!")
+            return None
+
+        print("\nAvailable root folders:")
+        for idx, folder in enumerate(root_folders, 1):
+            free_space = folder.get('freeSpace', 0) / (1024*1024*1024)  # Convert to GB
+            print(f"{idx}. {folder['path']} ({free_space:.2f} GB free)")
+
+        while True:
+            try:
+                selection = input("\nSelect root folder number (or 'q' to quit): ")
+                if selection.lower() == 'q':
+                    return None
+
+                selected_idx = int(selection)
+                if 1 <= selected_idx <= len(root_folders):
+                    return root_folders[selected_idx - 1]
+                else:
+                    print(f"Please enter a number between 1 and {len(root_folders)}")
+            except ValueError:
+                print("Please enter a valid number or 'q' to quit")
+    except Exception as e:
+        print(f"Error fetching root folders: {str(e)}")
+        return None
+
+def get_quality_profile_selection(client):
+    """Get user selection of quality profile."""
+    try:
+        print("\nFetching quality profiles...")
+        profiles = client.get_quality_profiles()
+
+        if not profiles:
+            print("No quality profiles found in Lidarr!")
+            return None
+
+        print("\nAvailable quality profiles:")
+        for idx, profile in enumerate(profiles, 1):
+            print(f"{idx}. {profile['name']}")
+
+        while True:
+            try:
+                selection = input("\nSelect quality profile number (or 'q' to quit): ")
+                if selection.lower() == 'q':
+                    return None
+
+                selected_idx = int(selection)
+                if 1 <= selected_idx <= len(profiles):
+                    return profiles[selected_idx - 1]
+                else:
+                    print(f"Please enter a number between 1 and {len(profiles)}")
+            except ValueError:
+                print("Please enter a valid number or 'q' to quit")
+    except Exception as e:
+        print(f"Error fetching quality profiles: {str(e)}")
+        return None
+
+def get_metadata_profile_selection(client):
+    """Get user selection of metadata profile."""
+    try:
+        print("\nFetching metadata profiles...")
+        profiles = client.get_metadata_profiles()
+
+        if not profiles:
+            print("No metadata profiles found in Lidarr!")
+            return None
+
+        print("\nAvailable metadata profiles:")
+        for idx, profile in enumerate(profiles, 1):
+            print(f"{idx}. {profile['name']}")
+
+        while True:
+            try:
+                selection = input("\nSelect metadata profile number (or 'q' to quit): ")
+                if selection.lower() == 'q':
+                    return None
+
+                selected_idx = int(selection)
+                if 1 <= selected_idx <= len(profiles):
+                    return profiles[selected_idx - 1]
+                else:
+                    print(f"Please enter a number between 1 and {len(profiles)}")
+            except ValueError:
+                print("Please enter a valid number or 'q' to quit")
+    except Exception as e:
+        print(f"Error fetching metadata profiles: {str(e)}")
+        return None
+
+def get_monitored_option():
+    """Get user selection for monitored status."""
+    print("\nMonitor this artist?")
+    print("1. Yes")
+    print("2. No")
+
+    while True:
+        selection = input("\nEnter option (or 'q' to quit): ")
+        if selection.lower() == 'q':
+            return None
+        try:
+            option = int(selection)
+            if option in [1, 2]:
+                return option == 1
+            print("Please enter 1 or 2")
+        except ValueError:
+            print("Please enter a valid number")
+
+def get_album_monitor_option():
+    """Get user selection for album monitoring."""
+    print("\nSelect which albums to monitor:")
+    print("1. All albums")
+    print("2. Future albums only")
+    print("3. None")
+
+    while True:
+        selection = input("\nEnter option (or 'q' to quit): ")
+        if selection.lower() == 'q':
+            return None
+        try:
+            option = int(selection)
+            if 1 <= option <= 3:
+                return option
+            print("Please enter a number between 1 and 3")
+        except ValueError:
+            print("Please enter a valid number")
+
+def get_tags_selection(client):
+    """Get user selection of tags."""
+    try:
+        print("\nFetching available tags...")
+        tags = client.get_tags()
+        selected_tags = []
+
+        while True:
+            print("\nCurrent tags:", ", ".join([t['label'] for t in selected_tags]) or "None")
+            print("\nAvailable tags:")
+            print("0. Done selecting tags")
+            print("N. Create new tag")
+            for idx, tag in enumerate(tags, 1):
+                if tag not in selected_tags:
+                    print(f"{idx}. {tag['label']}")
+
+            selection = input("\nSelect tag number, 'N' for new, or 0 when done (or 'q' to quit): ").strip()
+            if selection.lower() == 'q':
+                return None
+            if selection == '0':
+                return selected_tags
+            if selection.lower() == 'n':
+                new_tag = input("Enter new tag name: ").strip()
+                if new_tag:
+                    try:
+                        tag = client.add_tag(new_tag)
+                        tags.append(tag)
+                        selected_tags.append(tag)
+                    except Exception as e:
+                        print(f"Error creating tag: {str(e)}")
+                continue
+
+            try:
+                idx = int(selection)
+                if 1 <= idx <= len(tags):
+                    tag = tags[idx - 1]
+                    if tag not in selected_tags:
+                        selected_tags.append(tag)
+                else:
+                    print(f"Please enter a number between 0 and {len(tags)}")
+            except ValueError:
+                print("Please enter a valid number, 'N', or 'q' to quit")
+    except Exception as e:
+        print(f"Error fetching tags: {str(e)}")
+        return None
+
+def prepare_artist_data(artist_info, root_folder, quality_profile, metadata_profile, monitored, album_monitor_option, tags):
+    """Prepare artist data for adding to Lidarr."""
+    monitor_options = {
+        1: {"monitored": True, "albumFolder": True, "monitor": "all"},
+        2: {"monitored": True, "albumFolder": True, "monitor": "future"},
+        3: {"monitored": False, "albumFolder": True, "monitor": "none"}
+    }
+
+    monitor_settings = monitor_options[album_monitor_option]
+
+    artist_data = {
+        "artistName": artist_info["artistName"],
+        "foreignArtistId": artist_info["foreignArtistId"],
+        "qualityProfileId": quality_profile["id"],
+        "metadataProfileId": metadata_profile["id"],  # Now using selected metadata profile
+        "rootFolderPath": root_folder["path"],
+        "monitored": monitored,
+        "albumFolder": monitor_settings["albumFolder"],
+        "monitor": monitor_settings["monitor"],
+        "tags": [tag["id"] for tag in (tags or [])],
+        "addOptions": {
+            "monitor": monitor_settings["monitor"],
+            "searchForMissingAlbums": monitored
+        }
+    }
+
+    # Add optional fields if they exist in artist_info
+    for field in ["overview", "disambiguation", "artistType"]:
+        if field in artist_info:
+            artist_data[field] = artist_info[field]
+
+    return artist_data
+
 def main():
     parser = argparse.ArgumentParser(description='Search for an artist in Lidarr')
     parser.add_argument('artist_name', help='Name of the artist to search for')
@@ -115,7 +325,81 @@ def main():
                 if 1 <= selected_idx <= len(results):
                     selected_artist = results[selected_idx - 1]
                     print(f"\nSelected artist: {selected_artist['artistName']}")
-                    return 0
+
+                    # Get root folder selection
+                    root_folder = get_root_folder_selection(client)
+                    if not root_folder:
+                        print("Root folder selection cancelled")
+                        return 0
+                    print(f"\nSelected root folder: {root_folder['path']}")
+
+                    # Get quality profile selection
+                    quality_profile = get_quality_profile_selection(client)
+                    if not quality_profile:
+                        print("Quality profile selection cancelled")
+                        return 0
+                    print(f"\nSelected quality profile: {quality_profile['name']}")
+
+                    # Get metadata profile selection
+                    metadata_profile = get_metadata_profile_selection(client)
+                    if not metadata_profile:
+                        print("Metadata profile selection cancelled")
+                        return 0
+                    print(f"\nSelected metadata profile: {metadata_profile['name']}")
+
+                    # Get monitored status
+                    monitored = get_monitored_option()
+                    if monitored is None:
+                        print("Monitored selection cancelled")
+                        return 0
+                    print(f"\nMonitored: {'Yes' if monitored else 'No'}")
+
+                    # Get album monitor option
+                    album_option = get_album_monitor_option()
+                    if album_option is None:
+                        print("Album monitor selection cancelled")
+                        return 0
+                    album_monitor = {
+                        1: "All albums",
+                        2: "Future albums only",
+                        3: "None"
+                    }[album_option]
+                    print(f"\nMonitoring: {album_monitor}")
+
+                    # Get tags
+                    tags = get_tags_selection(client)
+                    if tags is None:
+                        print("Tag selection cancelled")
+                        return 0
+                    if tags:
+                        print("\nSelected tags:", ", ".join(t['label'] for t in tags))
+                    else:
+                        print("\nNo tags selected")
+
+                    # After collecting all information
+                    print("\nPreparing to add artist...")
+                    artist_data = prepare_artist_data(
+                        selected_artist,
+                        root_folder,
+                        quality_profile,
+                        metadata_profile,
+                        monitored,
+                        album_option,
+                        tags
+                    )
+
+                    try:
+                        print(f"\nAdding artist {selected_artist['artistName']}...")
+                        added_artist = client.add_artist(artist_data)
+                        print(f"\nSuccessfully added {added_artist['artistName']} to Lidarr!")
+                        if monitored:
+                            print("Artist will be monitored and albums will be searched.")
+                        return 0
+                    except Exception as e:
+                        print(f"\nError adding artist: {str(e)}", file=sys.stderr)
+                        if args.debug:
+                            traceback.print_exc()
+                        return 1
                 else:
                     print(f"Please enter a number between 1 and {len(results)}")
             except ValueError:
