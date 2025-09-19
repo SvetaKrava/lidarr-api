@@ -311,7 +311,7 @@ def main():
         retry_total=args.retries,
         timeout=args.timeout
     )
-    
+
     config = Config(args.config)
     defaults = config.get_artist_defaults() if args.use_defaults else None
 
@@ -458,7 +458,7 @@ def main():
                         print(f"\nAdding artist {selected_artist['artistName']}...")
                         added_artist = client.add_artist(artist_data)
                         print(f"\nSuccessfully added {added_artist['artistName']} to Lidarr!")
-                        
+
                         if args.force_search:
                             print("Triggering search for all albums...")
                             search_result = client.search_artist_albums(added_artist['id'])
