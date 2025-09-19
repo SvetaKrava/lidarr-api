@@ -7,15 +7,18 @@ from datetime import datetime
 from lidarr_api import LidarrClient
 from tests.config import LIDARR_URL, LIDARR_API_KEY
 
+
 # Fixtures for both test suites
 @pytest.fixture
 def client():
     return LidarrClient(base_url=LIDARR_URL, api_key=LIDARR_API_KEY)
 
+
 @pytest.fixture
 def mock_responses():
     with responses.RequestsMock() as rsps:
         yield rsps
+
 
 class TestLidarrClientUnit:
     """Unit tests using mocked responses"""
@@ -374,7 +377,8 @@ class TestLidarrClientUnit:
 
             # Check that debug logs were created
             assert any("Making GET request to" in record.message
-                     for record in caplog.records)
+                       for record in caplog.records)
+
 
 class TestLidarrClientIntegration:
     """Integration tests using actual Lidarr server"""
