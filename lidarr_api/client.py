@@ -17,13 +17,28 @@ class LidarrClient:
         """
         Initialize the Lidarr API client.
 
+        The client provides comprehensive error handling with automatic retries,
+        rate limiting, and logging. It supports all Lidarr API endpoints and includes
+        helpers for common operations.
+
         Args:
             base_url: The base URL of your Lidarr instance (e.g., 'http://localhost:8686')
             api_key: Your Lidarr API key
-            retry_total: Number of retries for failed requests
-            retry_backoff_factor: Backoff factor between retries
-            timeout: Request timeout in seconds (default 60)
-            rate_limit_per_second: Maximum number of requests per second
+            retry_total: Number of retries for failed requests (default: 3)
+            retry_backoff_factor: Backoff factor between retries (default: 0.3)
+                The wait time between retries is calculated as:
+                {backoff factor} * (2 ** ({number of total retries} - 1))
+            timeout: Request timeout in seconds (default: 60)
+            rate_limit_per_second: Maximum number of requests per second (default: 2.0)
+                This helps prevent overwhelming the Lidarr server
+
+        Example:
+            >>> client = LidarrClient(
+            ...     base_url='http://localhost:8686',
+            ...     api_key='your-api-key',
+            ...     timeout=120  # Increase timeout for slower connections
+            ... )
+            >>> status = client.get_system_status()
         """
         self.base_url = base_url.rstrip('/')
         self.api_key = api_key

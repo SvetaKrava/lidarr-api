@@ -6,7 +6,46 @@ from typing import Dict, Any, Optional, List
 DEFAULT_CONFIG_PATH = os.path.expanduser("~/.config/lidarr-api/defaults.json")
 
 class Config:
+    """
+    Configuration management for Lidarr API client.
+
+    This class handles saving and loading of default settings for artist addition,
+    making it easier to maintain consistent configurations across multiple operations.
+
+    The configuration is stored in JSON format and includes settings for:
+    - Root folder path
+    - Quality profile
+    - Metadata profile
+    - Monitored status
+    - Album monitoring options
+    - Tags
+
+    Args:
+        config_path: Path to the config file. Defaults to ~/.config/lidarr-api/defaults.json
+
+    Example:
+        >>> config = Config()
+        >>> # Save defaults
+        >>> config.save_artist_defaults(
+        ...     root_folder={"path": "/music"},
+        ...     quality_profile={"id": 1},
+        ...     metadata_profile={"id": 1},
+        ...     monitored=True,
+        ...     album_monitor_option=1,  # 1=All, 2=Future, 3=None
+        ...     tags=[{"id": 1, "label": "rock"}]
+        ... )
+        >>> # Later, load the defaults
+        >>> defaults = config.get_artist_defaults()
+    """
+
     def __init__(self, config_path: Optional[str] = None):
+        """
+        Initialize the configuration manager.
+
+        Args:
+            config_path: Optional path to the config file. If not provided,
+                       defaults to ~/.config/lidarr-api/defaults.json
+        """
         self.config_path = config_path or DEFAULT_CONFIG_PATH
         self.settings = self.load()
 

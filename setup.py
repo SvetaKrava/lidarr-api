@@ -6,7 +6,15 @@ setup(
     packages=find_packages(),
     install_requires=[
         "requests>=2.25.0",
+        "typing-extensions>=4.0.0",  # For Python <3.8 compatibility
     ],
+    extras_require={
+        'dev': [
+            'pytest>=7.0.0',
+            'pytest-mock>=3.10.0',
+            'responses>=0.23.0',
+        ],
+    },
     entry_points={
         'console_scripts': [
             'lidarr-search=examples.search_artist:main',
@@ -21,6 +29,10 @@ setup(
         "Programming Language :: Python :: 3",
         "License :: OSI Approved :: MIT License",
         "Operating System :: OS Independent",
+        "Development Status :: 4 - Beta",
+        "Intended Audience :: Developers",
+        "Topic :: Multimedia :: Sound/Audio",
+        "Topic :: Software Development :: Libraries :: Python Modules",
     ],
     python_requires=">=3.6",
 )
