@@ -327,3 +327,11 @@ class LidarrClient:
     def clear_blocklist(self) -> None:
         """Remove all items from the blocklist."""
         return self._request('DELETE', 'blocklist')
+
+    def get_metadata_profiles(self) -> List[Dict[str, Any]]:
+        """Get all metadata profiles."""
+        return self._request('GET', 'metadataprofile')
+
+    def get_metadata_profile(self, profile_id: int) -> Dict[str, Any]:
+        """Get a specific metadata profile by ID."""
+        return self._request('GET', f'metadataprofile/{profile_id}')
