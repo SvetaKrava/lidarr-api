@@ -10,6 +10,8 @@ pip install lidarr-api
 
 ## Usage
 
+### Basic Usage
+
 ```python
 from lidarr_api import LidarrClient
 
@@ -19,7 +21,7 @@ client = LidarrClient(
     api_key='your-api-key',
     retry_total=3,                # Number of retries for failed requests
     retry_backoff_factor=0.3,     # Backoff factor between retries
-    timeout=30,                   # Request timeout in seconds
+    timeout=60,                   # Request timeout in seconds (default increased from 30)
     rate_limit_per_second=2.0     # Maximum requests per second
 )
 
@@ -34,22 +36,57 @@ artist = client.get_artist(artist_id=1234)
 
 # Get albums for an artist
 albums = client.get_albums_by_artist(artist_id=1234)
+```
 
-# Get calendar events
-calendar = client.get_calendar(start_date='2025-09-18', end_date='2025-10-18')
+### Command Line Interface
 
-# Get wanted/missing albums with custom timeout
-wanted = client.get_wanted(timeout=60)
+The package includes a command-line tool for searching and adding artists:
 
-# Manage tags
-tags = client.get_tags()
-new_tag = client.add_tag("new-tag")
-client.delete_tag(new_tag['id'])
+```bash
+lidarr-search "Artist Name" --api-key YOUR_API_KEY [options]
+```
+
+Options:
+
+- `--url`: Lidarr server URL (default: <http://localhost:8686>)
+- `--timeout`: Request timeout in seconds (default: 60)
+- `--retries`: Number of retries for failed requests (default: 3)
+- `--force-search`: Trigger album search after adding artist
+- `--use-defaults`: Use saved configuration defaults
+- `--save-defaults`: Save current selections as defaults
+- `--config`: Path to config file (default: ~/.config/lidarr-api/defaults.json)
+- `--debug`: Enable debug output
+
+### Configuration Management
+
+The library supports saving and loading default configurations for artist addition:
+
+```python
+from lidarr_api import LidarrClient
+from lidarr_api.config import Config
+
+# Initialize with custom config path
+config = Config('/path/to/config.json')
+
+# Get saved defaults
+defaults = config.get_artist_defaults()
+
+# Save new defaults
+config.save_artist_defaults(
+    root_folder={"path": "/music"},
+    quality_profile={"id": 1},
+    metadata_profile={"id": 1},
+    monitored=True,
+    album_monitor_option=1,  # 1=All, 2=Future, 3=None
+    tags=[{"id": 1, "label": "rock"}]
+)
 ```
 
 ## Features
 
 - Complete Lidarr API coverage
+- Command-line interface for artist management
+- Configuration persistence
 - Automatic retry mechanism for failed requests
 - Rate limiting to prevent server overload
 - Configurable request timeouts
@@ -76,7 +113,7 @@ client.delete_tag(new_tag['id'])
 | api_key | Required | Your Lidarr API key |
 | retry_total | 3 | Number of retries for failed requests |
 | retry_backoff_factor | 0.3 | Backoff factor between retries |
-| timeout | 30 | Request timeout in seconds |
+| timeout | 60 | Request timeout in seconds |
 | rate_limit_per_second | 2.0 | Maximum requests per second |
 
 ## Requirements
@@ -90,6 +127,8 @@ client.delete_tag(new_tag['id'])
 2. Install development dependencies: `pip install -r requirements.txt`
 3. Copy `tests/config.py.example` to `tests/config.py` and update with your Lidarr settings
 4. Run tests: `pytest`
+   - For integration tests: `pytest -m integration`
+   - For unit tests only: `pytest -m "not integration"`
 
 ## Error Handling
 
@@ -102,7 +141,16 @@ The client includes comprehensive error handling for:
 - Invalid requests
 - Missing resources
 
-All errors are properly logged and can be caught using standard Python exception handling.
+All errors are properly logged and can be caught using standard Python exception handling. The client automatically retries failed requests with exponential backoff.
+
+### Logging
+
+The client uses Python's standard logging module. You can configure logging level and handlers:
+
+```python
+import logging
+logging.getLogger('lidarr_api').setLevel(logging.DEBUG)
+```
 
 ## License
 
