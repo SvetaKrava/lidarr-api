@@ -248,6 +248,7 @@ def main():
     parser.add_argument('--debug', action='store_true', help='Enable debug output')
     parser.add_argument('--timeout', type=int, default=60, help='Timeout in seconds for API requests')
     parser.add_argument('--retries', type=int, default=3, help='Number of retries for failed requests')
+    parser.add_argument('--force-search', action='store_true', help='Force search for albums after adding artist')
     args = parser.parse_args()
 
     # Set up logging
@@ -392,8 +393,13 @@ def main():
                         print(f"\nAdding artist {selected_artist['artistName']}...")
                         added_artist = client.add_artist(artist_data)
                         print(f"\nSuccessfully added {added_artist['artistName']} to Lidarr!")
-                        if monitored:
-                            print("Artist will be monitored and albums will be searched.")
+                        
+                        if args.force_search:
+                            print("Triggering search for all albums...")
+                            search_result = client.search_artist_albums(added_artist['id'])
+                            print("Search started successfully!")
+                        elif monitored:
+                            print("Artist will be monitored and albums will be searched according to Lidarr's schedule.")
                         return 0
                     except Exception as e:
                         print(f"\nError adding artist: {str(e)}", file=sys.stderr)
