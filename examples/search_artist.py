@@ -289,8 +289,8 @@ def prepare_artist_data(artist_info, root_folder, quality_profile, metadata_prof
 def main():
     parser = argparse.ArgumentParser(description='Search for an artist in Lidarr')
     parser.add_argument('artist_name', help='Name of the artist to search for')
-    parser.add_argument('--url', default='http://localhost:8686', help='Lidarr server URL')
-    parser.add_argument('--api-key', required=True, help='Lidarr API key')
+    parser.add_argument('--url', help='Lidarr server URL (default: from config or http://localhost:8686)')
+    parser.add_argument('--api-key', help='Lidarr API key (default: from config)')
     parser.add_argument('--debug', action='store_true', help='Enable debug output')
     parser.add_argument('--timeout', type=int, default=60, help='Timeout in seconds for API requests')
     parser.add_argument('--retries', type=int, default=3, help='Number of retries for failed requests')
@@ -298,21 +298,42 @@ def main():
     parser.add_argument('--use-defaults', action='store_true', help='Use saved defaults for artist addition')
     parser.add_argument('--save-defaults', action='store_true', help='Save selections as defaults')
     parser.add_argument('--config', help='Path to config file (default: ~/.config/lidarr-api/defaults.json)')
+    parser.add_argument('--save-connection', action='store_true', help='Save URL and API key to config')
     args = parser.parse_args()
 
     # Set up logging
     log_level = logging.DEBUG if args.debug else logging.INFO
     logging.basicConfig(level=log_level)
 
-    # Initialize the client and config
+    # Load config and connection settings
+    config = Config(args.config)
+    connection = config.get_connection_settings() or {}
+
+    # Get URL and API key, with priority:
+    # 1. Command line arguments
+    # 2. Config file
+    # 3. Default URL
+    base_url = args.url or connection.get('base_url') or 'http://localhost:8686'
+    api_key = args.api_key or connection.get('api_key')
+
+    if not api_key:
+        print("Error: API key is required. Provide it via --api-key or save it in the config file.", file=sys.stderr)
+        return 1
+
+    # Save connection settings if requested
+    if args.save_connection and (args.url or args.api_key):
+        config.save_connection_settings(base_url, api_key)
+        print("Connection settings saved to config file")
+
+    # Initialize the client
     client = LidarrClient(
-        base_url=args.url,
-        api_key=args.api_key,
+        base_url=base_url,
+        api_key=api_key,
         retry_total=args.retries,
         timeout=args.timeout
     )
 
-    config = Config(args.config)
+    # Rest of the existing code...
     defaults = config.get_artist_defaults() if args.use_defaults else None
 
     try:
