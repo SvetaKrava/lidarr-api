@@ -1,10 +1,9 @@
 import requests
 import logging
 import time
-from typing import Dict, Any, Optional, List, Union
-from datetime import datetime
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
+
 
 class LidarrClient:
     def __init__(self,
@@ -61,7 +60,7 @@ class LidarrClient:
             total=retry_total,
             backoff_factor=retry_backoff_factor,
             status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE", "POST"],  # Allow retries on all methods
+            allowed_methods=["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE", "POST"],
             raise_on_status=True
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
@@ -126,7 +125,11 @@ class LidarrClient:
         """Add a new artist to Lidarr."""
         return self._request('POST', 'artist', json=artist_data)
 
-    def get_calendar(self, start_date: Optional[str] = None, end_date: Optional[str] = None) -> List[Dict[str, Any]]:
+    def get_calendar(
+        self,
+        start_date: Optional[str] = None,
+        end_date: Optional[str] = None
+    ) -> List[Dict[str, Any]]:
         """Get calendar events."""
         params = {}
         if start_date:
@@ -151,10 +154,12 @@ class LidarrClient:
         """Test an import list by ID."""
         return self._request('POST', f'importlist/test/{import_list_id}')
 
-    def get_wanted(self,
-                  page: int = 1,
-                  page_size: int = 10,
-                  include_artist: bool = True) -> Dict[str, Any]:
+    def get_wanted(
+        self,
+        page: int = 1,
+        page_size: int = 10,
+        include_artist: bool = True
+    ) -> Dict[str, Any]:
         """
         Get wanted/missing albums.
 
@@ -210,11 +215,13 @@ class LidarrClient:
         """Delete a root folder by ID."""
         return self._request('DELETE', f'rootfolder/{folder_id}')
 
-    def get_queue(self,
-                 page: int = 1,
-                 page_size: int = 10,
-                 include_artist: bool = True,
-                 include_album: bool = True) -> Dict[str, Any]:
+    def get_queue(
+        self,
+        page: int = 1,
+        page_size: int = 10,
+        include_artist: bool = True,
+        include_album: bool = True
+    ) -> Dict[str, Any]:
         """Get the current download queue."""
         params = {
             'page': page,
@@ -224,10 +231,12 @@ class LidarrClient:
         }
         return self._request('GET', 'queue', params=params)
 
-    def delete_queue_item(self,
-                         queue_id: int,
-                         blacklist: bool = False,
-                         remove_from_client: bool = True) -> None:
+    def delete_queue_item(
+        self,
+        queue_id: int,
+        blacklist: bool = False,
+        remove_from_client: bool = True
+    ) -> None:
         """
         Remove an item from the queue.
 
@@ -242,10 +251,12 @@ class LidarrClient:
         }
         return self._request('DELETE', f'queue/{queue_id}', params=params)
 
-    def get_history(self,
-                   page: int = 1,
-                   page_size: int = 10,
-                   include_artist: bool = True) -> Dict[str, Any]:
+    def get_history(
+        self,
+        page: int = 1,
+        page_size: int = 10,
+        include_artist: bool = True
+    ) -> Dict[str, Any]:
         """Get download history."""
         params = {
             'page': page,
@@ -322,10 +333,12 @@ class LidarrClient:
         """Start a manual backup."""
         return self._request('POST', 'system/backup', json={'type': 'manual'})
 
-    def get_blocklist(self,
-                     page: int = 1,
-                     page_size: int = 10,
-                     include_artist: bool = True) -> Dict[str, Any]:
+    def get_blocklist(
+        self,
+        page: int = 1,
+        page_size: int = 10,
+        include_artist: bool = True
+    ) -> Dict[str, Any]:
         """Get blocklisted releases."""
         params = {
             'page': page,
