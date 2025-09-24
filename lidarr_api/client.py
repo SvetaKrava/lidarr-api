@@ -1,11 +1,23 @@
-import requests
+"""Lidarr API client module for interacting with Lidarr instances."""
+
 import logging
 import time
+from typing import Any, Dict, List, Optional
+
+import requests
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 
 
 class LidarrClient:
+    """
+    A comprehensive client for interacting with Lidarr API.
+
+    This client provides methods for searching artists, managing albums,
+    configuring quality profiles, and other Lidarr operations with
+    built-in retry logic, rate limiting, and error handling.
+    """
+
     def __init__(self,
                  base_url: str,
                  api_key: str,
@@ -49,7 +61,8 @@ class LidarrClient:
         self.logger = logging.getLogger('lidarr_api')
         if not self.logger.handlers:
             handler = logging.StreamHandler()
-            formatter = logging.Formatter('%(asctime)s - %(name)s - %(levelname)s - %(message)s')
+            formatter = logging.Formatter(
+                '%(asctime)s - %(name)s - %(levelname)s - %(message)s')
             handler.setFormatter(formatter)
             self.logger.addHandler(handler)
             self.logger.setLevel(logging.INFO)
@@ -60,7 +73,8 @@ class LidarrClient:
             total=retry_total,
             backoff_factor=retry_backoff_factor,
             status_forcelist=[429, 500, 502, 503, 504],
-            allowed_methods=["HEAD", "GET", "PUT", "DELETE", "OPTIONS", "TRACE", "POST"],
+            allowed_methods=["HEAD", "GET", "PUT",
+                             "DELETE", "OPTIONS", "TRACE", "POST"],
             raise_on_status=True
         )
         adapter = HTTPAdapter(max_retries=retry_strategy)
@@ -79,11 +93,12 @@ class LidarrClient:
         time_since_last_request = now - self.last_request_time
         if time_since_last_request < self.rate_limit:
             sleep_time = self.rate_limit - time_since_last_request
-            self.logger.debug(f"Rate limiting - sleeping for {sleep_time:.2f}s")
+            self.logger.debug(
+                "Rate limiting - sleeping for %.2fs", sleep_time)
             time.sleep(sleep_time)
 
         url = f"{self.base_url}/api/v1/{endpoint}"
-        self.logger.debug(f"Making {method} request to {url}")
+        self.logger.debug("Making %s request to %s", method, url)
 
         # Add timeout to all requests
         kwargs['timeout'] = kwargs.get('timeout', self.timeout)
@@ -94,7 +109,7 @@ class LidarrClient:
             self.last_request_time = time.time()
             return response.json() if response.content else None
         except requests.exceptions.RequestException as e:
-            self.logger.error(f"Request failed: {str(e)}")
+            self.logger.error("Request failed: %s", str(e))
             raise
 
     def _bool_to_str(self, value: bool) -> str:
