@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """
-Lidarr artist search and management script.
+Lidarr artist search and management CLI.
 
-This script provides a command-line interface for searching, adding, and managing
+This module provides a command-line interface for searching, adding, and managing
 artists in Lidarr. It includes features like retry logic, configuration management,
 and interactive artist selection.
 """
@@ -13,19 +13,27 @@ import textwrap
 import traceback
 import time
 import logging
+from typing import Dict, Any, List, Optional, Callable
+
 import requests
-from lidarr_api import LidarrClient
-from lidarr_api.config import Config
+
+from .client import LidarrClient
+from .config import Config
 
 
-def format_overview(text, width=70):
+def format_overview(text: str, width: int = 70) -> str:
     """Format text by wrapping it to specified width."""
     if not text:
         return ""
     return "\n".join(textwrap.wrap(text, width=width))
 
 
-def retry_with_backoff(func, max_retries=3, initial_wait=2.0, backoff_factor=2.0):
+def retry_with_backoff(
+    func: Callable,
+    max_retries: int = 3,
+    initial_wait: float = 2.0,
+    backoff_factor: float = 2.0,
+) -> Any:
     """Retry a function with exponential backoff."""
     wait_time = initial_wait
     last_exception = None
@@ -35,18 +43,25 @@ def retry_with_backoff(func, max_retries=3, initial_wait=2.0, backoff_factor=2.0
             return func()
         except (KeyboardInterrupt, SystemExit):  # pylint: disable=try-except-raise
             raise  # Don't retry system exceptions
-        except (requests.exceptions.RequestException, ConnectionError, TimeoutError) as e:
+        except (
+            requests.exceptions.RequestException,
+            ConnectionError,
+            TimeoutError,
+        ) as e:
             last_exception = e
             if attempt < max_retries - 1:  # Don't sleep on the last attempt
                 print(
-                    f"\nAttempt {attempt + 1} failed, retrying in {wait_time:.1f} seconds...")
+                    f"\nAttempt {attempt + 1} failed, retrying in {wait_time:.1f} seconds..."
+                )
                 time.sleep(wait_time)
                 wait_time *= backoff_factor
 
     raise last_exception
 
 
-def get_root_folder_selection(client, defaults=None):
+def get_root_folder_selection(
+    client: LidarrClient, defaults: Optional[Dict[str, Any]] = None
+) -> Optional[Dict[str, Any]]:
     """Get user selection of root folder."""
     try:
         print("\nFetching available root folders...")
@@ -57,39 +72,45 @@ def get_root_folder_selection(client, defaults=None):
             return None
 
         # If using defaults and a default path exists, find it
-        if defaults and 'root_folder_path' in defaults:
+        if defaults and "root_folder_path" in defaults:
             for folder in root_folders:
-                if folder['path'] == defaults['root_folder_path']:
+                if folder["path"] == defaults["root_folder_path"]:
                     print(f"\nUsing default root folder: {folder['path']}")
                     return folder
 
         print("\nAvailable root folders:")
         for idx, folder in enumerate(root_folders, 1):
-            free_space = folder.get('freeSpace', 0) / \
-                (1024*1024*1024)  # Convert to GB
+            free_space = folder.get("freeSpace", 0) / (
+                1024 * 1024 * 1024
+            )  # Convert to GB
             print(f"{idx}. {folder['path']} ({free_space:.2f} GB free)")
 
         while True:
             try:
-                selection = input(
-                    "\nSelect root folder number (or 'q' to quit): ")
-                if selection.lower() == 'q':
+                selection = input("\nSelect root folder number (or 'q' to quit): ")
+                if selection.lower() == "q":
                     return None
 
                 selected_idx = int(selection)
                 if 1 <= selected_idx <= len(root_folders):
                     return root_folders[selected_idx - 1]
                 else:
-                    print(
-                        f"Please enter a number between 1 and {len(root_folders)}")
+                    print(f"Please enter a number between 1 and {len(root_folders)}")
             except ValueError:
                 print("Please enter a valid number or 'q' to quit")
-    except (requests.exceptions.RequestException, ConnectionError, TimeoutError, KeyError) as e:
+    except (
+        requests.exceptions.RequestException,
+        ConnectionError,
+        TimeoutError,
+        KeyError,
+    ) as e:
         print(f"Error fetching root folders: {str(e)}")
         return None
 
 
-def get_quality_profile_selection(client, defaults=None):
+def get_quality_profile_selection(
+    client: LidarrClient, defaults: Optional[Dict[str, Any]] = None
+) -> Optional[Dict[str, Any]]:
     """Get user selection of quality profile."""
     try:
         print("\nFetching quality profiles...")
@@ -100,11 +121,10 @@ def get_quality_profile_selection(client, defaults=None):
             return None
 
         # If using defaults and a default profile exists, find it
-        if defaults and 'quality_profile_id' in defaults:
+        if defaults and "quality_profile_id" in defaults:
             for profile in profiles:
-                if profile['id'] == defaults['quality_profile_id']:
-                    print(
-                        f"\nUsing default quality profile: {profile['name']}")
+                if profile["id"] == defaults["quality_profile_id"]:
+                    print(f"\nUsing default quality profile: {profile['name']}")
                     return profile
 
         print("\nAvailable quality profiles:")
@@ -113,25 +133,30 @@ def get_quality_profile_selection(client, defaults=None):
 
         while True:
             try:
-                selection = input(
-                    "\nSelect quality profile number (or 'q' to quit): ")
-                if selection.lower() == 'q':
+                selection = input("\nSelect quality profile number (or 'q' to quit): ")
+                if selection.lower() == "q":
                     return None
 
                 selected_idx = int(selection)
                 if 1 <= selected_idx <= len(profiles):
                     return profiles[selected_idx - 1]
                 else:
-                    print(
-                        f"Please enter a number between 1 and {len(profiles)}")
+                    print(f"Please enter a number between 1 and {len(profiles)}")
             except ValueError:
                 print("Please enter a valid number or 'q' to quit")
-    except (requests.exceptions.RequestException, ConnectionError, TimeoutError, KeyError) as e:
+    except (
+        requests.exceptions.RequestException,
+        ConnectionError,
+        TimeoutError,
+        KeyError,
+    ) as e:
         print(f"Error fetching quality profiles: {str(e)}")
         return None
 
 
-def get_metadata_profile_selection(client, defaults=None):
+def get_metadata_profile_selection(
+    client: LidarrClient, defaults: Optional[Dict[str, Any]] = None
+) -> Optional[Dict[str, Any]]:
     """Get user selection of metadata profile."""
     try:
         print("\nFetching metadata profiles...")
@@ -142,11 +167,10 @@ def get_metadata_profile_selection(client, defaults=None):
             return None
 
         # If using defaults and a default profile exists, find it
-        if defaults and 'metadata_profile_id' in defaults:
+        if defaults and "metadata_profile_id" in defaults:
             for profile in profiles:
-                if profile['id'] == defaults['metadata_profile_id']:
-                    print(
-                        f"\nUsing default metadata profile: {profile['name']}")
+                if profile["id"] == defaults["metadata_profile_id"]:
+                    print(f"\nUsing default metadata profile: {profile['name']}")
                     return profile
 
         print("\nAvailable metadata profiles:")
@@ -155,30 +179,32 @@ def get_metadata_profile_selection(client, defaults=None):
 
         while True:
             try:
-                selection = input(
-                    "\nSelect metadata profile number (or 'q' to quit): ")
-                if selection.lower() == 'q':
+                selection = input("\nSelect metadata profile number (or 'q' to quit): ")
+                if selection.lower() == "q":
                     return None
 
                 selected_idx = int(selection)
                 if 1 <= selected_idx <= len(profiles):
                     return profiles[selected_idx - 1]
                 else:
-                    print(
-                        f"Please enter a number between 1 and {len(profiles)}")
+                    print(f"Please enter a number between 1 and {len(profiles)}")
             except ValueError:
                 print("Please enter a valid number or 'q' to quit")
-    except (requests.exceptions.RequestException, ConnectionError, TimeoutError, KeyError) as e:
+    except (
+        requests.exceptions.RequestException,
+        ConnectionError,
+        TimeoutError,
+        KeyError,
+    ) as e:
         print(f"Error fetching metadata profiles: {str(e)}")
         return None
 
 
-def get_monitored_option(defaults=None):
+def get_monitored_option(defaults: Optional[Dict[str, Any]] = None) -> Optional[bool]:
     """Get user selection for monitored status."""
-    if defaults and 'monitored' in defaults:
-        monitored = defaults['monitored']
-        print(
-            f"\nUsing default monitored setting: {'Yes' if monitored else 'No'}")
+    if defaults and "monitored" in defaults:
+        monitored = defaults["monitored"]
+        print(f"\nUsing default monitored setting: {'Yes' if monitored else 'No'}")
         return monitored
 
     print("\nMonitor this artist?")
@@ -187,7 +213,7 @@ def get_monitored_option(defaults=None):
 
     while True:
         selection = input("\nEnter option (or 'q' to quit): ")
-        if selection.lower() == 'q':
+        if selection.lower() == "q":
             return None
         try:
             option = int(selection)
@@ -198,15 +224,13 @@ def get_monitored_option(defaults=None):
             print("Please enter a valid number")
 
 
-def get_album_monitor_option(defaults=None):
+def get_album_monitor_option(
+    defaults: Optional[Dict[str, Any]] = None,
+) -> Optional[int]:
     """Get user selection for album monitoring."""
-    if defaults and 'album_monitor_option' in defaults:
-        option = defaults['album_monitor_option']
-        monitor_text = {
-            1: "All albums",
-            2: "Future albums only",
-            3: "None"
-        }[option]
+    if defaults and "album_monitor_option" in defaults:
+        option = defaults["album_monitor_option"]
+        monitor_text = {1: "All albums", 2: "Future albums only", 3: "None"}[option]
         print(f"\nUsing default album monitoring: {monitor_text}")
         return option
 
@@ -217,7 +241,7 @@ def get_album_monitor_option(defaults=None):
 
     while True:
         selection = input("\nEnter option (or 'q' to quit): ")
-        if selection.lower() == 'q':
+        if selection.lower() == "q":
             return None
         try:
             option = int(selection)
@@ -228,7 +252,9 @@ def get_album_monitor_option(defaults=None):
             print("Please enter a valid number")
 
 
-def get_tags_selection(client, defaults=None):
+def get_tags_selection(
+    client: LidarrClient, defaults: Optional[Dict[str, Any]] = None
+) -> Optional[List[Dict[str, Any]]]:
     """Get user selection of tags."""
     try:
         print("\nFetching available tags...")
@@ -236,18 +262,18 @@ def get_tags_selection(client, defaults=None):
         selected_tags = []
 
         # If using defaults and default tags exist, find them
-        if defaults and 'tag_ids' in defaults:
+        if defaults and "tag_ids" in defaults:
             for tag in tags:
-                if tag['id'] in defaults['tag_ids']:
+                if tag["id"] in defaults["tag_ids"]:
                     selected_tags.append(tag)
             if selected_tags:
-                print("\nUsing default tags:", ", ".join(
-                    t['label'] for t in selected_tags))
+                tag_names = ", ".join(t["label"] for t in selected_tags)
+                print(f"\nUsing default tags: {tag_names}")
                 return selected_tags
 
         while True:
-            print("\nCurrent tags:", ", ".join(
-                [t['label'] for t in selected_tags]) or "None")
+            current_tags = ", ".join([t["label"] for t in selected_tags]) or "None"
+            print(f"\nCurrent tags: {current_tags}")
             print("\nAvailable tags:")
             print("0. Done selecting tags")
             print("N. Create new tag")
@@ -258,19 +284,23 @@ def get_tags_selection(client, defaults=None):
             selection = input(
                 "\nSelect tag number, 'N' for new, or 0 when done (or 'q' to quit): "
             ).strip()
-            if selection.lower() == 'q':
+            if selection.lower() == "q":
                 return None
-            if selection == '0':
+            if selection == "0":
                 return selected_tags
-            if selection.lower() == 'n':
+            if selection.lower() == "n":
                 new_tag = input("Enter new tag name: ").strip()
                 if new_tag:
                     try:
                         tag = client.add_tag(new_tag)
                         tags.append(tag)
                         selected_tags.append(tag)
-                    except (requests.exceptions.RequestException, ConnectionError,
-                            TimeoutError, ValueError) as e:
+                    except (
+                        requests.exceptions.RequestException,
+                        ConnectionError,
+                        TimeoutError,
+                        ValueError,
+                    ) as e:
                         print(f"Error creating tag: {str(e)}")
                 continue
 
@@ -284,25 +314,30 @@ def get_tags_selection(client, defaults=None):
                     print(f"Please enter a number between 0 and {len(tags)}")
             except ValueError:
                 print("Please enter a valid number, 'N', or 'q' to quit")
-    except (requests.exceptions.RequestException, ConnectionError, TimeoutError, KeyError) as e:
+    except (
+        requests.exceptions.RequestException,
+        ConnectionError,
+        TimeoutError,
+        KeyError,
+    ) as e:
         print(f"Error fetching tags: {str(e)}")
         return None
 
 
 def prepare_artist_data(
-    artist_info,
-    root_folder,
-    quality_profile,
-    metadata_profile,
-    monitored,
-    album_monitor_option,
-    tags
-):
+    artist_info: Dict[str, Any],
+    root_folder: Dict[str, Any],
+    quality_profile: Dict[str, Any],
+    metadata_profile: Dict[str, Any],
+    monitored: bool,
+    album_monitor_option: int,
+    tags: Optional[List[Dict[str, Any]]],
+) -> Dict[str, Any]:
     """Prepare artist data for adding to Lidarr."""
     monitor_options = {
         1: {"monitored": True, "albumFolder": True, "monitor": "all"},
         2: {"monitored": True, "albumFolder": True, "monitor": "future"},
-        3: {"monitored": False, "albumFolder": True, "monitor": "none"}
+        3: {"monitored": False, "albumFolder": True, "monitor": "none"},
     }
 
     monitor_settings = monitor_options[album_monitor_option]
@@ -311,7 +346,6 @@ def prepare_artist_data(
         "artistName": artist_info["artistName"],
         "foreignArtistId": artist_info["foreignArtistId"],
         "qualityProfileId": quality_profile["id"],
-        # Now using selected metadata profile
         "metadataProfileId": metadata_profile["id"],
         "rootFolderPath": root_folder["path"],
         "monitored": monitored,
@@ -320,8 +354,8 @@ def prepare_artist_data(
         "tags": [tag["id"] for tag in (tags or [])],
         "addOptions": {
             "monitor": monitor_settings["monitor"],
-            "searchForMissingAlbums": monitored
-        }
+            "searchForMissingAlbums": monitored,
+        },
     }
 
     # Add optional fields if they exist in artist_info
@@ -332,63 +366,43 @@ def prepare_artist_data(
     return artist_data
 
 
-def main():
+def main() -> int:
     """Main function that handles command-line interface and artist search workflow."""
-    parser = argparse.ArgumentParser(
-        description='Search for an artist in Lidarr')
+    parser = argparse.ArgumentParser(description="Search for an artist in Lidarr")
+    parser.add_argument("artist_name", help="Name of the artist to search for")
     parser.add_argument(
-        'artist_name',
-        help='Name of the artist to search for'
+        "--url",
+        help="Lidarr server URL (default: from config or http://localhost:8686)",
+    )
+    parser.add_argument("--api-key", help="Lidarr API key (default: from config)")
+    parser.add_argument("--debug", action="store_true", help="Enable debug output")
+    parser.add_argument(
+        "--timeout", type=int, default=60, help="Timeout in seconds for API requests"
     )
     parser.add_argument(
-        '--url',
-        help='Lidarr server URL (default: from config or http://localhost:8686)'
+        "--retries", type=int, default=3, help="Number of retries for failed requests"
     )
     parser.add_argument(
-        '--api-key',
-        help='Lidarr API key (default: from config)'
+        "--force-search",
+        action="store_true",
+        help="Force search for albums after adding artist",
     )
     parser.add_argument(
-        '--debug',
-        action='store_true',
-        help='Enable debug output'
+        "--use-defaults",
+        action="store_true",
+        help="Use saved defaults for artist addition",
     )
     parser.add_argument(
-        '--timeout',
-        type=int,
-        default=60,
-        help='Timeout in seconds for API requests'
+        "--save-defaults", action="store_true", help="Save selections as defaults"
     )
     parser.add_argument(
-        '--retries',
-        type=int,
-        default=3,
-        help='Number of retries for failed requests'
+        "--config",
+        help="Path to config file (default: ~/.config/lidarr-api/defaults.json)",
     )
     parser.add_argument(
-        '--force-search',
-        action='store_true',
-        help='Force search for albums after adding artist'
+        "--save-connection", action="store_true", help="Save URL and API key to config"
     )
-    parser.add_argument(
-        '--use-defaults',
-        action='store_true',
-        help='Use saved defaults for artist addition'
-    )
-    parser.add_argument(
-        '--save-defaults',
-        action='store_true',
-        help='Save selections as defaults'
-    )
-    parser.add_argument(
-        '--config',
-        help='Path to config file (default: ~/.config/lidarr-api/defaults.json)'
-    )
-    parser.add_argument(
-        '--save-connection',
-        action='store_true',
-        help='Save URL and API key to config'
-    )
+
     args = parser.parse_args()
 
     # Set up logging
@@ -403,14 +417,13 @@ def main():
     # 1. Command line arguments
     # 2. Config file
     # 3. Default URL
-    base_url = args.url or connection.get(
-        'base_url') or 'http://localhost:8686'
-    api_key = args.api_key or connection.get('api_key')
+    base_url = args.url or connection.get("base_url") or "http://localhost:8686"
+    api_key = args.api_key or connection.get("api_key")
 
     if not api_key:
         print(
             "Error: API key is required. Provide it via --api-key or save it in the config file.",
-            file=sys.stderr
+            file=sys.stderr,
         )
         return 1
 
@@ -424,10 +437,9 @@ def main():
         base_url=base_url,
         api_key=api_key,
         retry_total=args.retries,
-        timeout=args.timeout
+        timeout=args.timeout,
     )
 
-    # Rest of the existing code...
     defaults = config.get_artist_defaults() if args.use_defaults else None
 
     try:
@@ -444,21 +456,23 @@ def main():
         print("Fetching existing artists...")
         try:
             existing_artists = retry_with_backoff(
-                client.get_all_artists,
-                max_retries=args.retries,
-                initial_wait=2.0
+                client.get_all_artists, max_retries=args.retries, initial_wait=2.0
             )
             existing_foreign_artist_ids = {
-                a.get('foreignArtistId')
+                a.get("foreignArtistId")
                 for a in existing_artists
-                if a.get('foreignArtistId')
+                if a.get("foreignArtistId")
             }
             if args.debug:
                 print(f"Found {len(existing_artists)} existing artists")
                 print("Existing artist IDs:", existing_foreign_artist_ids)
-        except (requests.exceptions.RequestException, ConnectionError, TimeoutError, KeyError) as e:
-            print(
-                f"\nError fetching existing artists: {str(e)}", file=sys.stderr)
+        except (
+            requests.exceptions.RequestException,
+            ConnectionError,
+            TimeoutError,
+            KeyError,
+        ) as e:
+            print(f"\nError fetching existing artists: {str(e)}", file=sys.stderr)
             if args.debug:
                 traceback.print_exc()
             print("\nContinuing without existing artist check...", file=sys.stderr)
@@ -467,36 +481,40 @@ def main():
         # Display results
         print(f"\nFound {len(results)} results:\n")
         for idx, artist in enumerate(results, 1):
-            foreign_id = artist.get('foreignArtistId')
+            foreign_id = artist.get("foreignArtistId")
             already_added = foreign_id in existing_foreign_artist_ids
 
             if args.debug:
                 print(
-                    f"Debug: Artist {artist['artistName']} foreignArtistId: {foreign_id}")
+                    f"Debug: Artist {artist['artistName']} foreignArtistId: {foreign_id}"
+                )
 
-            status = "\033[33m[Already added]\033[0m" if already_added else "\033[32m[Not added]\033[0m"  # noqa: E501 pylint: disable=line-too-long
+            if already_added:
+                status = "\033[33m[Already added]\033[0m"
+            else:
+                status = "\033[32m[Not added]\033[0m"
             print(f"{idx}. {status} {artist['artistName']}")
-            if 'disambiguation' in artist and artist['disambiguation']:
+            if "disambiguation" in artist and artist["disambiguation"]:
                 print(f"Note: {artist['disambiguation']}")
-            if 'overview' in artist and artist['overview']:
+            if "overview" in artist and artist["overview"]:
                 print("\nOverview:")
-                print(format_overview(artist['overview']))
+                print(format_overview(artist["overview"]))
             print("\n" + "-" * 80 + "\n")
 
         # Interactive artist selection
         while True:
             try:
                 selection = input(
-                    "\nEnter the number of the artist to select (or 'q' to quit): ")
-                if selection.lower() == 'q':
+                    "\nEnter the number of the artist to select (or 'q' to quit): "
+                )
+                if selection.lower() == "q":
                     print("Operation cancelled by user")
                     return 0
 
                 selected_idx = int(selection)
                 if 1 <= selected_idx <= len(results):
                     selected_artist = results[selected_idx - 1]
-                    print(
-                        f"\nSelected artist: {selected_artist['artistName']}")
+                    print(f"\nSelected artist: {selected_artist['artistName']}")
 
                     # Get root folder selection
                     root_folder = get_root_folder_selection(client, defaults)
@@ -506,22 +524,18 @@ def main():
                     print(f"\nSelected root folder: {root_folder['path']}")
 
                     # Get quality profile selection
-                    quality_profile = get_quality_profile_selection(
-                        client, defaults)
+                    quality_profile = get_quality_profile_selection(client, defaults)
                     if not quality_profile:
                         print("Quality profile selection cancelled")
                         return 0
-                    print(
-                        f"\nSelected quality profile: {quality_profile['name']}")
+                    print(f"\nSelected quality profile: {quality_profile['name']}")
 
                     # Get metadata profile selection
-                    metadata_profile = get_metadata_profile_selection(
-                        client, defaults)
+                    metadata_profile = get_metadata_profile_selection(client, defaults)
                     if not metadata_profile:
                         print("Metadata profile selection cancelled")
                         return 0
-                    print(
-                        f"\nSelected metadata profile: {metadata_profile['name']}")
+                    print(f"\nSelected metadata profile: {metadata_profile['name']}")
 
                     # Get monitored status
                     monitored = get_monitored_option(defaults)
@@ -538,7 +552,7 @@ def main():
                     album_monitor = {
                         1: "All albums",
                         2: "Future albums only",
-                        3: "None"
+                        3: "None",
                     }[album_option]
                     print(f"\nMonitoring: {album_monitor}")
 
@@ -548,8 +562,7 @@ def main():
                         print("Tag selection cancelled")
                         return 0
                     if tags:
-                        print("\nSelected tags:", ", ".join(
-                            t['label'] for t in tags))
+                        print("\nSelected tags:", ", ".join(t["label"] for t in tags))
                     else:
                         print("\nNo tags selected")
 
@@ -562,7 +575,7 @@ def main():
                             metadata_profile,
                             monitored,
                             album_option,
-                            tags
+                            tags,
                         )
                         print("Defaults saved successfully!")
 
@@ -575,46 +588,61 @@ def main():
                         metadata_profile,
                         monitored,
                         album_option,
-                        tags
+                        tags,
                     )
 
                     try:
-                        print(
-                            f"\nAdding artist {selected_artist['artistName']}...")
+                        print(f"\nAdding artist {selected_artist['artistName']}...")
                         added_artist = client.add_artist(artist_data)
                         print(
-                            f"\nSuccessfully added {added_artist['artistName']} to Lidarr!")
+                            f"\nSuccessfully added {added_artist['artistName']} to Lidarr!"
+                        )
 
                         if args.force_search:
                             print("Triggering search for all albums...")
-                            client.search_artist_albums(added_artist['id'])
+                            client.search_artist_albums(added_artist["id"])
                             print("Search started successfully!")
                         elif monitored:
-                            print("Artist will be monitored and albums will be searched according to Lidarr's schedule.")  # noqa: E501 pylint: disable=line-too-long
+                            print(
+                                "Artist will be monitored and albums will be searched "
+                                "according to Lidarr's schedule."
+                            )
                         return 0
-                    except (requests.exceptions.RequestException, ConnectionError,
-                            TimeoutError, ValueError) as e:
-                        print(
-                            f"\nError adding artist: {str(e)}", file=sys.stderr)
+                    except (
+                        requests.exceptions.RequestException,
+                        ConnectionError,
+                        TimeoutError,
+                        ValueError,
+                    ) as e:
+                        print(f"\nError adding artist: {str(e)}", file=sys.stderr)
                         if args.debug:
                             traceback.print_exc()
                         return 1
                 else:
-                    print(
-                        f"Please enter a number between 1 and {len(results)}")
+                    print(f"Please enter a number between 1 and {len(results)}")
             except ValueError:
                 print("Please enter a valid number or 'q' to quit")
 
     except KeyboardInterrupt:
         print("\nOperation cancelled by user")
         return 130
-    except (requests.exceptions.RequestException, ConnectionError, TimeoutError,
-            ValueError, KeyError) as e:
+    except (
+        requests.exceptions.RequestException,
+        ConnectionError,
+        TimeoutError,
+        ValueError,
+        KeyError,
+    ) as e:
         print(f"Error: {str(e)}", file=sys.stderr)
         if args.debug:
             traceback.print_exc()
         return 1
 
 
-if __name__ == '__main__':
+def cli_main() -> None:
+    """Entry point for the CLI command."""
     sys.exit(main())
+
+
+if __name__ == "__main__":
+    cli_main()

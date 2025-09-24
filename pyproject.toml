@@ -33,7 +33,7 @@ pytest-mock = "^3.10.0"
 responses = "^0.23.0"
 
 [tool.poetry.scripts]
-lidarr-search = "bin.lidarr_search:main"
+lidarr-search = "lidarr_api.cli:cli_main"
 
 [tool.pylint]
 max-line-length = 100
