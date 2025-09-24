@@ -13,6 +13,10 @@ repository = "https://github.com/SvetaKrava/lidarr-api"
 license = "MIT"
 classifiers = [
     "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.10",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
     "License :: OSI Approved :: MIT License",
     "Operating System :: OS Independent",
     "Development Status :: 4 - Beta",
@@ -23,14 +27,15 @@ classifiers = [
 packages = [{include = "lidarr_api"}]
 
 [tool.poetry.dependencies]
-python = "^3.8"
-requests = "^2.25.0"
-typing-extensions = "^4.0.0"
+python = "^3.10"
+requests = "^2.32.0"
+urllib3 = "~2.5.0"
+typing-extensions = "^4.15.0"
 
 [tool.poetry.group.dev.dependencies]
-pytest = "^7.0.0"
-pytest-mock = "^3.10.0"
-responses = "^0.23.0"
+pytest = "^8.0.0"
+pytest-mock = "^3.15.0"
+responses = "^0.25.0"
 
 [tool.poetry.scripts]
 lidarr-search = "lidarr_api.cli:cli_main"
