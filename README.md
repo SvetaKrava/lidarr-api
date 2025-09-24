@@ -150,11 +150,12 @@ defaults = config.get_artist_defaults()
 ## Development
 
 1. Clone the repository
-2. Install development dependencies: `pip install -r requirements.txt`
-3. Copy `tests/config.py.example` to `tests/config.py` and update with your Lidarr settings
-4. Run tests: `pytest`
-   - For integration tests: `pytest -m integration`
-   - For unit tests only: `pytest -m "not integration"`
+2. Install Poetry: `pip install poetry`
+3. Install dependencies: `poetry install`
+4. Copy `tests/config.py.example` to `tests/config.py` and update with your Lidarr settings
+5. Run tests: `poetry run pytest`
+   - For integration tests: `poetry run pytest -m integration`
+   - For unit tests only: `poetry run pytest -m "not integration"`
 
 ## Error Handling
 

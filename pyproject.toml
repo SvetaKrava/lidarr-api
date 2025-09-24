@@ -1,3 +1,40 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "lidarr-api"
+version = "0.1.0"
+description = "A Python library for interacting with the Lidarr API"
+authors = ["JD Runyan <jason@runyan.net>"]
+readme = "README.md"
+homepage = "https://github.com/SvetaKrava/lidarr-api"
+repository = "https://github.com/SvetaKrava/lidarr-api"
+license = "MIT"
+classifiers = [
+    "Programming Language :: Python :: 3",
+    "License :: OSI Approved :: MIT License",
+    "Operating System :: OS Independent",
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Multimedia :: Sound/Audio",
+    "Topic :: Software Development :: Libraries :: Python Modules",
+]
+packages = [{include = "lidarr_api"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+requests = "^2.25.0"
+typing-extensions = "^4.0.0"
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.0.0"
+pytest-mock = "^3.10.0"
+responses = "^0.23.0"
+
+[tool.poetry.scripts]
+lidarr-search = "bin.lidarr_search:main"
+
 [tool.pylint]
 max-line-length = 100
 

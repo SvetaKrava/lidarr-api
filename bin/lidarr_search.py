@@ -13,6 +13,7 @@ import textwrap
 import traceback
 import time
 import logging
+
 import requests
 from lidarr_api import LidarrClient
 from lidarr_api.config import Config
