@@ -344,7 +344,7 @@ def import_tags_from_config(client: LidarrClient, config_file: str, dry_run: boo
                     print(f"Error creating tag '{label}': {e}")
 
         action = "Would create" if dry_run else "Created"
-        print("\nSummary:")
+        print(f"\nSummary:")
         print(f"  {action}: {added_count} tags")
         print(f"  Skipped: {skipped_count} tags")
 
