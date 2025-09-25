@@ -231,7 +231,7 @@ def import_artists_from_json(client: LidarrClient, input_file: str, dry_run: boo
                     error_count += 1
 
         action = "Would add" if dry_run else "Added"
-        print("\nSummary:")
+        print(f"\nSummary:")
         print(f"  {action}: {added_count} artists")
         print(f"  Skipped: {skipped_count} artists")
         if error_count > 0:
