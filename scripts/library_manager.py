@@ -126,7 +126,7 @@ def search_wanted_albums(client: LidarrClient, limit: int = 10) -> None:
                 )
                 album_title = album.get('title', 'Unknown')
                 print(f"  ✓ {artist_name} - {album_title}")
-            except (KeyError, ValueError) as e:
+            except Exception as e:
                 print(f"  ✗ Failed to search for album {album.get('id')}: {e}")
 
         print(f"Search initiated for {len(records)} albums")
