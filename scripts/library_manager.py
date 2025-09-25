@@ -12,7 +12,6 @@ This script provides library management functionality for Lidarr:
 import argparse
 import sys
 from datetime import datetime
-# No typing imports needed
 
 from lidarr_api import LidarrClient
 from lidarr_api.config import Config
