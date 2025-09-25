@@ -39,6 +39,11 @@ responses = "^0.25.0"
 
 [tool.poetry.scripts]
 lidarr-search = "lidarr_api.cli:cli_main"
+lidarr-bulk = "scripts.bulk_artist_manager:main"
+lidarr-maintenance = "scripts.system_maintenance:main"
+lidarr-library = "scripts.library_manager:main"
+lidarr-monitor = "scripts.monitoring:main"
+lidarr-data = "scripts.data_utils:main"
 
 [tool.pylint]
 max-line-length = 100

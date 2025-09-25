@@ -53,14 +53,14 @@ albums = client.get_albums_by_artist(artist_id=1234)
 
 ### Command Line Interface
 
-The package includes a command-line tool for searching and adding artists:
+The package includes multiple command-line tools for different tasks:
 
+#### Artist Search and Management
 ```bash
 lidarr-search "Artist Name" [options]
 ```
 
 Options:
-
 - `--url`: Lidarr server URL (default: from config or <http://localhost:8686>)
 - `--api-key`: Lidarr API key (default: from config)
 - `--timeout`: Request timeout in seconds (default: 60)
@@ -71,6 +71,18 @@ Options:
 - `--config`: Path to config file (default: ~/.config/lidarr-api/defaults.json)
 - `--save-connection`: Save URL and API key to config
 - `--debug`: Enable debug output
+
+#### Utility Scripts
+
+Additional utility scripts are available for advanced management:
+
+- **`lidarr-bulk`**: Bulk operations on artists (monitor, tag, search, export)
+- **`lidarr-maintenance`**: System maintenance (backups, blocklist, health checks)
+- **`lidarr-library`**: Library management (wanted albums, profiles, queue)
+- **`lidarr-monitor`**: Monitoring and health checks with alerting
+- **`lidarr-data`**: Data import/export and migration utilities
+
+See the [scripts documentation](scripts/README.md) for detailed usage information.
 
 ### Configuration Management
 
@@ -130,6 +142,7 @@ defaults = config.get_artist_defaults()
 - Blocklist management
 - Disk space monitoring
 - Backup/restore operations
+- **Comprehensive utility scripts** for bulk operations, system maintenance, library management, monitoring, and data migration
 
 ## Configuration Options
 
