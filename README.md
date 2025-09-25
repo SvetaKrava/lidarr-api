@@ -56,11 +56,13 @@ albums = client.get_albums_by_artist(artist_id=1234)
 The package includes multiple command-line tools for different tasks:
 
 #### Artist Search and Management
+
 ```bash
 lidarr-search "Artist Name" [options]
 ```
 
 Options:
+
 - `--url`: Lidarr server URL (default: from config or <http://localhost:8686>)
 - `--api-key`: Lidarr API key (default: from config)
 - `--timeout`: Request timeout in seconds (default: 60)
@@ -194,4 +196,4 @@ logging.getLogger('lidarr_api').setLevel(logging.DEBUG)
 
 ## License
 
-GNU General Public License v3.0 (GPL-3.0)
+This project is licensed under the GNU General Public License v3.0 or later (GPL-3.0-or-later).

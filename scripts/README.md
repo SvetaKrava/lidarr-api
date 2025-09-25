@@ -9,6 +9,7 @@ This directory contains utility scripts that extend the functionality of the Lid
 Perform bulk operations on artists in your Lidarr library.
 
 **Features:**
+
 - Bulk monitor/unmonitor artists
 - Bulk tag management (add/remove tags)
 - Search for albums across multiple artists
@@ -16,6 +17,7 @@ Perform bulk operations on artists in your Lidarr library.
 - List artists by tag
 
 **Examples:**
+
 ```bash
 python scripts/bulk_artist_manager.py monitor --artists 1,2,3,4
 python scripts/bulk_artist_manager.py tag --artists 1,2,3 --tag-ids 5,6 --add
@@ -28,12 +30,14 @@ python scripts/bulk_artist_manager.py list-by-tag --tag-name rock
 System maintenance and administrative tasks for Lidarr.
 
 **Features:**
+
 - Backup management (create, list, restore)
 - Blocklist management (view, clean, remove items)
 - System health monitoring
 - Disk space monitoring
 
 **Examples:**
+
 ```bash
 python scripts/system_maintenance.py backup create
 python scripts/system_maintenance.py backup list
@@ -46,12 +50,14 @@ python scripts/system_maintenance.py health
 Comprehensive library management utilities.
 
 **Features:**
+
 - Wanted/missing albums management
 - Quality and metadata profile management
 - Import list management
 - Download queue monitoring and management
 
 **Examples:**
+
 ```bash
 python scripts/library_manager.py wanted list
 python scripts/library_manager.py wanted search --limit 5
@@ -64,6 +70,7 @@ python scripts/library_manager.py queue view
 Advanced monitoring and health check capabilities.
 
 **Features:**
+
 - Comprehensive system health checks
 - Continuous queue monitoring with alerts
 - Recent download history analysis
@@ -71,6 +78,7 @@ Advanced monitoring and health check capabilities.
 - Export detailed health reports
 
 **Examples:**
+
 ```bash
 python scripts/monitoring.py status --verbose
 python scripts/monitoring.py monitor --interval 30
@@ -83,6 +91,7 @@ python scripts/monitoring.py export --output health_report.json
 Data import/export and migration utilities.
 
 **Features:**
+
 - Export artist libraries to JSON/CSV
 - Import artist lists from files
 - Configuration backup and restore
@@ -90,6 +99,7 @@ Data import/export and migration utilities.
 - Tag management across instances
 
 **Examples:**
+
 ```bash
 python scripts/data_utils.py export artists --output artists.json --include-albums
 python scripts/data_utils.py import artists --input artists.json --dry-run
@@ -102,11 +112,13 @@ python scripts/data_utils.py export wanted --output wanted.csv --format csv
 ### Prerequisites
 
 1. Install the lidarr-api package:
+
    ```bash
    pip install lidarr-api
    ```
 
 2. Make sure all scripts are executable:
+
    ```bash
    chmod +x scripts/*.py
    ```
@@ -115,12 +127,14 @@ python scripts/data_utils.py export wanted --output wanted.csv --format csv
 
 All scripts support the same connection options:
 
-**Option 1: Command Line Arguments**
+#### Option 1: Command Line Arguments
+
 ```bash
 python script.py --url http://localhost:8686 --api-key your-api-key [command]
 ```
 
-**Option 2: Configuration File**
+#### Option 2: Configuration File
+
 ```bash
 # First, save your connection settings
 python -c "
@@ -133,7 +147,8 @@ config.save_connection_settings('http://localhost:8686', 'your-api-key')
 python scripts/script.py [command]
 ```
 
-**Option 3: Custom Config Path**
+#### Option 3: Custom Config Path
+
 ```bash
 python scripts/script.py --config /path/to/config.json [command]
 ```
@@ -143,7 +158,7 @@ python scripts/script.py --config /path/to/config.json [command]
 All scripts support these common options:
 
 - `--url`: Lidarr server URL
-- `--api-key`: Lidarr API key  
+- `--api-key`: Lidarr API key
 - `--config`: Path to configuration file
 - `--timeout`: Request timeout in seconds (default: 60)
 - `--retries`: Number of retries for failed requests (default: 3)
@@ -153,6 +168,7 @@ All scripts support these common options:
 ### Common Workflows
 
 **Daily Maintenance:**
+
 ```bash
 # Check system health
 python scripts/monitoring.py status
@@ -166,6 +182,7 @@ python scripts/library_manager.py queue view
 ```
 
 **Weekly Cleanup:**
+
 ```bash
 # View and clean blocklist
 python scripts/system_maintenance.py blocklist view
@@ -176,6 +193,7 @@ python scripts/system_maintenance.py backup create
 ```
 
 **Migration Between Servers:**
+
 ```bash
 # Export from old server
 python scripts/data_utils.py export artists --output artists.json --include-albums
@@ -187,6 +205,7 @@ python scripts/data_utils.py import artists --input artists.json --execute
 ```
 
 **Bulk Operations:**
+
 ```bash
 # Monitor all rock artists
 python scripts/bulk_artist_manager.py list-by-tag --tag-name rock

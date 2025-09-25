@@ -14,9 +14,6 @@ import argparse
 import csv
 import json
 import sys
-from pathlib import Path
-from typing import List, Dict, Any, Optional
-
 from lidarr_api import LidarrClient
 from lidarr_api.config import Config
 
@@ -34,19 +31,26 @@ def setup_client(args: argparse.Namespace) -> LidarrClient:
         config = Config(args.config)
         settings = config.get_connection_settings()
         if not settings:
-            print("No connection settings found. Please provide --url and --api-key or save settings first.")
+            print(
+                "No connection settings found. Please provide --url and --api-key "
+                "or save settings first."
+            )
             sys.exit(1)
         client = LidarrClient(**settings, timeout=args.timeout, retry_total=args.retries)
-    
+
     return client
 
 
-def export_artists_json(client: LidarrClient, output_file: str, include_albums: bool = False) -> None:
+def export_artists_json(
+    client: LidarrClient,
+    output_file: str,
+    include_albums: bool = False,
+) -> None:
     """Export artists to JSON format."""
     try:
         print("Fetching artists...")
         artists = client.get_all_artists()
-        
+
         export_data = []
         for artist in artists:
             artist_data = {
@@ -66,7 +70,7 @@ def export_artists_json(client: LidarrClient, output_file: str, include_albums: 
                 'path': artist.get('path'),
                 'rootFolderPath': artist.get('rootFolderPath')
             }
-            
+
             if include_albums:
                 try:
                     albums = client.get_albums_by_artist(artist['id'])
@@ -78,18 +82,18 @@ def export_artists_json(client: LidarrClient, output_file: str, include_albums: 
                         'disambiguation': album.get('disambiguation', ''),
                         'foreignAlbumId': album.get('foreignAlbumId')
                     } for album in albums]
-                except Exception as e:
+                except (KeyError, AttributeError, RuntimeError) as e:
                     print(f"Warning: Failed to get albums for {artist.get('artistName')}: {e}")
                     artist_data['albums'] = []
-            
+
             export_data.append(artist_data)
-        
+
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(export_data, f, indent=2, ensure_ascii=False)
-        
+
         print(f"Exported {len(export_data)} artists to {output_file}")
-    
-    except Exception as e:
+
+    except (OSError, json.JSONDecodeError) as e:
         print(f"Error exporting artists to JSON: {e}")
 
 
@@ -98,17 +102,17 @@ def export_artists_csv(client: LidarrClient, output_file: str) -> None:
     try:
         print("Fetching artists...")
         artists = client.get_all_artists()
-        
+
         with open(output_file, 'w', newline='', encoding='utf-8') as f:
             fieldnames = [
                 'foreignArtistId', 'artistName', 'sortName', 'disambiguation',
                 'artistType', 'status', 'ended', 'genres', 'monitored',
                 'qualityProfileId', 'metadataProfileId', 'path', 'tags'
             ]
-            
+
             writer = csv.DictWriter(f, fieldnames=fieldnames)
             writer.writeheader()
-            
+
             for artist in artists:
                 # Convert lists to comma-separated strings for CSV
                 genres = ', '.join(artist.get('genres', []))
@@ -117,7 +121,7 @@ def export_artists_csv(client: LidarrClient, output_file: str) -> None:
                     # We'd need to resolve tag IDs to names, but for now just use IDs
                     tags_list = [str(tag) for tag in artist.get('tags', [])]
                 tags = ', '.join(tags_list)
-                
+
                 writer.writerow({
                     'foreignArtistId': artist.get('foreignArtistId', ''),
                     'artistName': artist.get('artistName', ''),
@@ -133,10 +137,10 @@ def export_artists_csv(client: LidarrClient, output_file: str) -> None:
                     'path': artist.get('path', ''),
                     'tags': tags
                 })
-        
+
         print(f"Exported {len(artists)} artists to {output_file}")
-    
-    except Exception as e:
+
+    except (OSError, csv.Error) as e:
         print(f"Error exporting artists to CSV: {e}")
 
 
@@ -144,54 +148,58 @@ def import_artists_from_json(client: LidarrClient, input_file: str, dry_run: boo
     """Import artists from JSON file."""
     try:
         print(f"Reading artists from {input_file}...")
-        
+
         with open(input_file, 'r', encoding='utf-8') as f:
             artists_data = json.load(f)
-        
+
         if not isinstance(artists_data, list):
             print("Error: JSON file should contain a list of artists")
             return
-        
+
         # Get existing artists to avoid duplicates
         print("Checking existing artists...")
         existing_artists = client.get_all_artists()
-        existing_ids = {artist.get('foreignArtistId') for artist in existing_artists if artist.get('foreignArtistId')}
-        
+        existing_ids = {
+            artist.get('foreignArtistId')
+            for artist in existing_artists
+            if artist.get('foreignArtistId')
+        }
+
         # Get available profiles
         quality_profiles = {p['id']: p for p in client.get_quality_profiles()}
         metadata_profiles = {p['id']: p for p in client.get_metadata_profiles()}
         root_folders = client.get_root_folders()
-        
+
         if not quality_profiles:
             print("Error: No quality profiles found. Please create at least one quality profile.")
             return
-        
+
         if not root_folders:
             print("Error: No root folders found. Please create at least one root folder.")
             return
-        
+
         default_quality_profile = list(quality_profiles.keys())[0]
         default_metadata_profile = list(metadata_profiles.keys())[0] if metadata_profiles else 1
         default_root_folder = root_folders[0]['path']
-        
+
         added_count = 0
         skipped_count = 0
         error_count = 0
-        
+
         for artist_data in artists_data:
             foreign_id = artist_data.get('foreignArtistId')
             artist_name = artist_data.get('artistName', 'Unknown')
-            
+
             if not foreign_id:
                 print(f"Skipping {artist_name}: no foreignArtistId")
                 skipped_count += 1
                 continue
-            
+
             if foreign_id in existing_ids:
                 print(f"Skipping {artist_name}: already exists")
                 skipped_count += 1
                 continue
-            
+
             # Prepare artist data for addition
             add_data = {
                 'foreignArtistId': foreign_id,
@@ -204,12 +212,12 @@ def import_artists_from_json(client: LidarrClient, input_file: str, dry_run: boo
                     'searchForMissingAlbums': True
                 }
             }
-            
+
             # Include optional fields if present
             for field in ['sortName', 'disambiguation', 'overview', 'artistType', 'genres', 'tags']:
                 if field in artist_data:
                     add_data[field] = artist_data[field]
-            
+
             if dry_run:
                 print(f"Would add: {artist_name} (ID: {foreign_id})")
                 added_count += 1
@@ -218,21 +226,21 @@ def import_artists_from_json(client: LidarrClient, input_file: str, dry_run: boo
                     client.add_artist(add_data)
                     print(f"Added: {artist_name}")
                     added_count += 1
-                except Exception as e:
+                except (RuntimeError, KeyError, TypeError) as e:
                     print(f"Error adding {artist_name}: {e}")
                     error_count += 1
-        
+
         action = "Would add" if dry_run else "Added"
-        print(f"\nSummary:")
+        print("\nSummary:")
         print(f"  {action}: {added_count} artists")
         print(f"  Skipped: {skipped_count} artists")
         if error_count > 0:
             print(f"  Errors: {error_count} artists")
-        
+
         if dry_run:
             print("\nThis was a dry run. Use --execute to actually import the artists.")
-    
-    except Exception as e:
+
+    except (OSError, json.JSONDecodeError) as e:
         print(f"Error importing artists from JSON: {e}")
 
 
@@ -240,7 +248,7 @@ def export_configuration(client: LidarrClient, output_file: str) -> None:
     """Export Lidarr configuration (profiles, tags, etc.) to JSON."""
     try:
         print("Exporting configuration...")
-        
+
         config_data = {
             'export_timestamp': client.get_system_status().get('startTime'),
             'quality_profiles': [],
@@ -249,48 +257,48 @@ def export_configuration(client: LidarrClient, output_file: str) -> None:
             'root_folders': [],
             'import_lists': []
         }
-        
+
         # Export quality profiles
         try:
             config_data['quality_profiles'] = client.get_quality_profiles()
             print(f"  Exported {len(config_data['quality_profiles'])} quality profiles")
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError) as e:
             print(f"  Warning: Failed to export quality profiles: {e}")
-        
+
         # Export metadata profiles
         try:
             config_data['metadata_profiles'] = client.get_metadata_profiles()
             print(f"  Exported {len(config_data['metadata_profiles'])} metadata profiles")
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError) as e:
             print(f"  Warning: Failed to export metadata profiles: {e}")
-        
+
         # Export tags
         try:
             config_data['tags'] = client.get_tags()
             print(f"  Exported {len(config_data['tags'])} tags")
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError) as e:
             print(f"  Warning: Failed to export tags: {e}")
-        
+
         # Export root folders
         try:
             config_data['root_folders'] = client.get_root_folders()
             print(f"  Exported {len(config_data['root_folders'])} root folders")
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError) as e:
             print(f"  Warning: Failed to export root folders: {e}")
-        
+
         # Export import lists
         try:
             config_data['import_lists'] = client.get_import_lists()
             print(f"  Exported {len(config_data['import_lists'])} import lists")
-        except Exception as e:
+        except (OSError, RuntimeError, KeyError) as e:
             print(f"  Warning: Failed to export import lists: {e}")
-        
+
         with open(output_file, 'w', encoding='utf-8') as f:
             json.dump(config_data, f, indent=2, ensure_ascii=False)
-        
+
         print(f"\nConfiguration exported to {output_file}")
-    
-    except Exception as e:
+
+    except (OSError, json.JSONDecodeError, RuntimeError, KeyError) as e:
         print(f"Error exporting configuration: {e}")
 
 
@@ -298,32 +306,32 @@ def import_tags_from_config(client: LidarrClient, config_file: str, dry_run: boo
     """Import tags from a configuration file."""
     try:
         print(f"Reading configuration from {config_file}...")
-        
+
         with open(config_file, 'r', encoding='utf-8') as f:
             config_data = json.load(f)
-        
+
         tags_to_import = config_data.get('tags', [])
         if not tags_to_import:
             print("No tags found in configuration file")
             return
-        
+
         # Get existing tags
         existing_tags = client.get_tags()
         existing_labels = {tag['label'].lower() for tag in existing_tags}
-        
+
         added_count = 0
         skipped_count = 0
-        
+
         for tag in tags_to_import:
             label = tag.get('label', '')
             if not label:
                 continue
-            
+
             if label.lower() in existing_labels:
                 print(f"Skipping tag '{label}': already exists")
                 skipped_count += 1
                 continue
-            
+
             if dry_run:
                 print(f"Would create tag: {label}")
                 added_count += 1
@@ -332,18 +340,18 @@ def import_tags_from_config(client: LidarrClient, config_file: str, dry_run: boo
                     client.add_tag(label)
                     print(f"Created tag: {label}")
                     added_count += 1
-                except Exception as e:
+                except (RuntimeError, KeyError) as e:
                     print(f"Error creating tag '{label}': {e}")
-        
+
         action = "Would create" if dry_run else "Created"
-        print(f"\nSummary:")
+        print("\nSummary:")
         print(f"  {action}: {added_count} tags")
         print(f"  Skipped: {skipped_count} tags")
-        
+
         if dry_run:
             print("\nThis was a dry run. Use --execute to actually import the tags.")
-    
-    except Exception as e:
+
+    except (OSError, json.JSONDecodeError, RuntimeError, KeyError) as e:
         print(f"Error importing tags: {e}")
 
 
@@ -351,38 +359,49 @@ def export_wanted_albums(client: LidarrClient, output_file: str, format_type: st
     """Export wanted albums list."""
     try:
         print("Fetching wanted albums...")
-        
+
         all_wanted = []
         page = 1
         page_size = 100
-        
+
         while True:
             result = client.get_wanted(page=page, page_size=page_size)
             records = result.get('records', [])
-            
+
             if not records:
                 break
-            
+
             all_wanted.extend(records)
-            
+
             if len(records) < page_size:
                 break
-            
+
             page += 1
-        
+
         if format_type.lower() == 'json':
             with open(output_file, 'w', encoding='utf-8') as f:
                 json.dump(all_wanted, f, indent=2, ensure_ascii=False)
-        
+
         elif format_type.lower() == 'csv':
             with open(output_file, 'w', newline='', encoding='utf-8') as f:
                 if all_wanted:
-                    fieldnames = ['artistName', 'albumTitle', 'releaseDate', 'albumType', 'monitored', 'foreignAlbumId']
+                    fieldnames = [
+                        'artistName',
+                        'albumTitle',
+                        'releaseDate',
+                        'albumType',
+                        'monitored',
+                        'foreignAlbumId'
+                    ]
                     writer = csv.DictWriter(f, fieldnames=fieldnames)
                     writer.writeheader()
-                    
+
                     for album in all_wanted:
-                        artist_name = album.get('artist', {}).get('artistName', 'Unknown') if album.get('artist') else 'Unknown'
+                        artist = album.get('artist')
+                        if artist:
+                            artist_name = artist.get('artistName', 'Unknown')
+                        else:
+                            artist_name = 'Unknown'
                         writer.writerow({
                             'artistName': artist_name,
                             'albumTitle': album.get('title', ''),
@@ -391,10 +410,10 @@ def export_wanted_albums(client: LidarrClient, output_file: str, format_type: st
                             'monitored': album.get('monitored', ''),
                             'foreignAlbumId': album.get('foreignAlbumId', '')
                         })
-        
+
         print(f"Exported {len(all_wanted)} wanted albums to {output_file}")
-    
-    except Exception as e:
+
+    except (OSError, json.JSONDecodeError, csv.Error, RuntimeError, KeyError) as e:
         print(f"Error exporting wanted albums: {e}")
 
 
@@ -407,82 +426,106 @@ def main() -> int:
 Examples:
   # Export artists to JSON
   %(prog)s export artists --output artists.json --format json
-  
+
   # Export artists with albums
   %(prog)s export artists --output artists.json --format json --include-albums
-  
+
   # Export to CSV
   %(prog)s export artists --output artists.csv --format csv
-  
+
   # Import artists (dry run first)
   %(prog)s import artists --input artists.json --dry-run
   %(prog)s import artists --input artists.json --execute
-  
+
   # Export configuration
   %(prog)s export config --output config.json
-  
+
   # Import tags from config
   %(prog)s import tags --input config.json --dry-run
-  
+
   # Export wanted albums
   %(prog)s export wanted --output wanted.json --format json
         """
     )
-    
+
     parser.add_argument('--url', help='Lidarr server URL')
     parser.add_argument('--api-key', help='Lidarr API key')
     parser.add_argument('--config', help='Config file path')
     parser.add_argument('--timeout', type=int, default=60, help='Request timeout (default: 60)')
     parser.add_argument('--retries', type=int, default=3, help='Number of retries (default: 3)')
-    
+
     subparsers = parser.add_subparsers(dest='command', help='Available commands')
-    
+
     # Export commands
     export_parser = subparsers.add_parser('export', help='Export data')
     export_subparsers = export_parser.add_subparsers(dest='export_type', help='Export types')
-    
+
     # Export artists
     export_artists_parser = export_subparsers.add_parser('artists', help='Export artists')
     export_artists_parser.add_argument('--output', required=True, help='Output file path')
-    export_artists_parser.add_argument('--format', choices=['json', 'csv'], default='json', help='Output format')
-    export_artists_parser.add_argument('--include-albums', action='store_true', help='Include album data (JSON only)')
-    
+    export_artists_parser.add_argument(
+        '--format',
+        choices=['json', 'csv'],
+        default='json',
+        help='Output format'
+    )
+    export_artists_parser.add_argument(
+        '--include-albums',
+        action='store_true',
+        help='Include album data (JSON only)'
+    )
+
     # Export configuration
     export_config_parser = export_subparsers.add_parser('config', help='Export configuration')
     export_config_parser.add_argument('--output', required=True, help='Output file path')
-    
+
     # Export wanted
     export_wanted_parser = export_subparsers.add_parser('wanted', help='Export wanted albums')
     export_wanted_parser.add_argument('--output', required=True, help='Output file path')
-    export_wanted_parser.add_argument('--format', choices=['json', 'csv'], default='json', help='Output format')
-    
+    export_wanted_parser.add_argument(
+        '--format',
+        choices=['json', 'csv'],
+        default='json',
+        help='Output format'
+    )
+
     # Import commands
     import_parser = subparsers.add_parser('import', help='Import data')
     import_subparsers = import_parser.add_subparsers(dest='import_type', help='Import types')
-    
+
     # Import artists
     import_artists_parser = import_subparsers.add_parser('artists', help='Import artists')
     import_artists_parser.add_argument('--input', required=True, help='Input JSON file path')
     import_group = import_artists_parser.add_mutually_exclusive_group(required=True)
-    import_group.add_argument('--dry-run', action='store_true', help='Show what would be imported without making changes')
+    import_group.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Show what would be imported without making changes'
+    )
     import_group.add_argument('--execute', action='store_true', help='Actually perform the import')
-    
+
     # Import tags
     import_tags_parser = import_subparsers.add_parser('tags', help='Import tags from config')
     import_tags_parser.add_argument('--input', required=True, help='Input config JSON file path')
     import_tags_group = import_tags_parser.add_mutually_exclusive_group(required=True)
-    import_tags_group.add_argument('--dry-run', action='store_true', help='Show what would be imported without making changes')
-    import_tags_group.add_argument('--execute', action='store_true', help='Actually perform the import')
-    
+    import_tags_group.add_argument(
+        '--dry-run',
+        action='store_true',
+        help='Show what would be imported without making changes'
+    )
+    import_tags_group.add_argument(
+        '--execute', action='store_true', help='Actually perform the import'
+    )
+
     args = parser.parse_args()
-    
+
     if not args.command:
         parser.print_help()
         return 1
-    
+
     try:
         client = setup_client(args)
-        
+
         if args.command == 'export':
             if args.export_type == 'artists':
                 if args.format == 'json':
@@ -496,7 +539,7 @@ Examples:
             else:
                 export_parser.print_help()
                 return 1
-        
+
         elif args.command == 'import':
             if args.import_type == 'artists':
                 import_artists_from_json(client, args.input, args.dry_run)
@@ -505,13 +548,13 @@ Examples:
             else:
                 import_parser.print_help()
                 return 1
-        
+
         return 0
-    
+
     except KeyboardInterrupt:
         print("\nOperation cancelled by user")
         return 130
-    except Exception as e:
+    except (OSError, RuntimeError, KeyError, ValueError) as e:
         print(f"Error: {e}")
         return 1
 
