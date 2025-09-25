@@ -1,3 +1,11 @@
+"""
+Configuration management for the Lidarr API Python client.
+
+This module provides the `Config` class for persistent storage and retrieval of
+connection settings and artist defaults. Configuration is saved as JSON in the user's
+home directory by default.
+"""
+
 import os
 import json
 from typing import Dict, Any, Optional, List
@@ -55,15 +63,15 @@ class Config:
             return {}
 
         try:
-            with open(self.config_path, 'r') as f:
+            with open(self.config_path, 'r', encoding='utf-8') as f:
                 return json.load(f)
-        except Exception:
+        except (json.JSONDecodeError, OSError):
             return {}
 
     def save(self) -> None:
         """Save current settings to config file."""
         os.makedirs(os.path.dirname(self.config_path), exist_ok=True)
-        with open(self.config_path, 'w') as f:
+        with open(self.config_path, 'w', encoding='utf-8') as f:
             json.dump(self.settings, f, indent=2)
 
     def save_artist_defaults(

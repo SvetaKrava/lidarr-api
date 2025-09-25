@@ -1,3 +1,5 @@
+# flake8: noqa pylint: disable=W,C,R
+
 import pytest
 import requests
 import responses
