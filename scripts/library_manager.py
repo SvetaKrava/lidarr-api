@@ -498,9 +498,6 @@ Examples:
     except (ValueError, KeyError, ImportError, argparse.ArgumentError) as e:
         print(f"Error: {e}")
         return 1
-    except SystemExit:
-        print("SystemExit encountered, exiting")
-        raise
     except Exception as e:  # pylint: disable=broad-except
         # Unexpected error
         print(f"Unexpected error: {e}")
