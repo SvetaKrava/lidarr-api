@@ -1,4 +1,10 @@
-"""Lidarr API client module for interacting with Lidarr instances."""
+"""
+Lidarr API client module for interacting with Lidarr instances.
+
+This module provides the LidarrClient class which offers comprehensive
+access to Lidarr API endpoints with built-in retry logic, rate limiting,
+and error handling.
+"""
 
 import logging
 import time
@@ -16,6 +22,10 @@ class LidarrClient:
     This client provides methods for searching artists, managing albums,
     configuring quality profiles, and other Lidarr operations with
     built-in retry logic, rate limiting, and error handling.
+    
+    Supports all major Lidarr API endpoints including system status,
+    artist/album management, quality profiles, import lists, queue 
+    management, history tracking, and more.
     """
 
     def __init__(self,
@@ -47,7 +57,8 @@ class LidarrClient:
             >>> client = LidarrClient(
             ...     base_url='http://localhost:8686',
             ...     api_key='your-api-key',
-            ...     timeout=120  # Increase timeout for slower connections
+            ...     timeout=120,  # Increase timeout for slower connections
+            ...     rate_limit_per_second=1.5  # Slower rate for busy servers
             ... )
             >>> status = client.get_system_status()
         """
