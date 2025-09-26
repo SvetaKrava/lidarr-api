@@ -19,10 +19,10 @@ Perform bulk operations on artists in your Lidarr library.
 **Examples:**
 
 ```bash
-python scripts/bulk_artist_manager.py monitor --artists 1,2,3,4
-python scripts/bulk_artist_manager.py tag --artists 1,2,3 --tag-ids 5,6 --add
-python scripts/bulk_artist_manager.py export --output artists.json --format json
-python scripts/bulk_artist_manager.py list-by-tag --tag-name rock
+lidarr-bulk monitor --artists 1,2,3,4
+lidarr-bulk tag --artists 1,2,3 --tag-ids 5,6 --add
+lidarr-bulk export --output artists.json --format json
+lidarr-bulk list-by-tag --tag-name rock
 ```
 
 ### 2. System Maintenance (`system_maintenance.py`)
@@ -39,10 +39,10 @@ System maintenance and administrative tasks for Lidarr.
 **Examples:**
 
 ```bash
-python scripts/system_maintenance.py backup create
-python scripts/system_maintenance.py backup list
-python scripts/system_maintenance.py blocklist view
-python scripts/system_maintenance.py health
+lidarr-maintenance backup create
+lidarr-maintenance backup list
+lidarr-maintenance blocklist view
+lidarr-maintenance health
 ```
 
 ### 3. Library Manager (`library_manager.py`)
@@ -59,10 +59,10 @@ Comprehensive library management utilities.
 **Examples:**
 
 ```bash
-python scripts/library_manager.py wanted list
-python scripts/library_manager.py wanted search --limit 5
-python scripts/library_manager.py profiles quality
-python scripts/library_manager.py queue view
+lidarr-library wanted list
+lidarr-library wanted search --limit 5
+lidarr-library profiles quality
+lidarr-library queue view
 ```
 
 ### 4. Monitoring (`monitoring.py`)
@@ -80,10 +80,10 @@ Advanced monitoring and health check capabilities.
 **Examples:**
 
 ```bash
-python scripts/monitoring.py status --verbose
-python scripts/monitoring.py monitor --interval 30
-python scripts/monitoring.py history --hours 48
-python scripts/monitoring.py export --output health_report.json
+lidarr-monitor status --verbose
+lidarr-monitor monitor --interval 30
+lidarr-monitor history --hours 48
+lidarr-monitor export --output health_report.json
 ```
 
 ### 5. Data Utilities (`data_utils.py`)
@@ -101,10 +101,17 @@ Data import/export and migration utilities.
 **Examples:**
 
 ```bash
-python scripts/data_utils.py export artists --output artists.json --include-albums
-python scripts/data_utils.py import artists --input artists.json --dry-run
-python scripts/data_utils.py export config --output config.json
-python scripts/data_utils.py export wanted --output wanted.csv --format csv
+# Export artists with albums
+lidarr-data export artists --output artists.json --include-albums
+
+# Import artists (dry run first)  
+lidarr-data import artists --input artists.json --dry-run
+
+# Export configuration
+lidarr-data export config --output config.json
+
+# Export wanted albums to CSV
+lidarr-data export wanted --output wanted.csv --format csv
 ```
 
 ## Installation and Setup
@@ -117,11 +124,7 @@ python scripts/data_utils.py export wanted --output wanted.csv --format csv
    pip install lidarr-api
    ```
 
-2. Make sure all scripts are executable:
-
-   ```bash
-   chmod +x scripts/*.py
-   ```
+   All CLI tools will be available after installation.
 
 ### Configuration
 
@@ -130,7 +133,11 @@ All scripts support the same connection options:
 #### Option 1: Command Line Arguments
 
 ```bash
-python script.py --url http://localhost:8686 --api-key your-api-key [command]
+lidarr-bulk --url http://localhost:8686 --api-key your-api-key [command]
+lidarr-data --url http://localhost:8686 --api-key your-api-key [command]
+lidarr-library --url http://localhost:8686 --api-key your-api-key [command]
+lidarr-maintenance --url http://localhost:8686 --api-key your-api-key [command]
+lidarr-monitor --url http://localhost:8686 --api-key your-api-key [command]
 ```
 
 #### Option 2: Configuration File
@@ -144,13 +151,17 @@ config.save_connection_settings('http://localhost:8686', 'your-api-key')
 "
 
 # Then use scripts without connection args
-python scripts/script.py [command]
+lidarr-bulk [command]
+lidarr-data [command]
+# etc.
 ```
 
 #### Option 3: Custom Config Path
 
 ```bash
-python scripts/script.py --config /path/to/config.json [command]
+lidarr-bulk --config /path/to/config.json [command]
+lidarr-data --config /path/to/config.json [command]
+# etc.
 ```
 
 ### Global Options
@@ -171,48 +182,48 @@ All scripts support these common options:
 
 ```bash
 # Check system health
-python scripts/monitoring.py status
+lidarr-monitor status
 
 # View wanted albums and trigger search for top 10
-python scripts/library_manager.py wanted list --page-size 10
-python scripts/library_manager.py wanted search --limit 10
+lidarr-library wanted list --page-size 10
+lidarr-library wanted search --limit 10
 
 # Check download queue
-python scripts/library_manager.py queue view
+lidarr-library queue view
 ```
 
 **Weekly Cleanup:**
 
 ```bash
 # View and clean blocklist
-python scripts/system_maintenance.py blocklist view
-python scripts/system_maintenance.py blocklist clear
+lidarr-maintenance blocklist view
+lidarr-maintenance blocklist clear
 
 # Create backup
-python scripts/system_maintenance.py backup create
+lidarr-maintenance backup create
 ```
 
 **Migration Between Servers:**
 
 ```bash
 # Export from old server
-python scripts/data_utils.py export artists --output artists.json --include-albums
-python scripts/data_utils.py export config --output config.json
+lidarr-data export artists --output artists.json --include-albums
+lidarr-data export config --output config.json
 
 # Import to new server
-python scripts/data_utils.py import tags --input config.json --execute
-python scripts/data_utils.py import artists --input artists.json --execute
+lidarr-data import tags --input config.json --execute
+lidarr-data import artists --input artists.json --execute
 ```
 
 **Bulk Operations:**
 
 ```bash
 # Monitor all rock artists
-python scripts/bulk_artist_manager.py list-by-tag --tag-name rock
-python scripts/bulk_artist_manager.py monitor --artists 1,2,3,4,5
+lidarr-bulk list-by-tag --tag-name rock
+lidarr-bulk monitor --artists 1,2,3,4,5
 
 # Search for albums by specific artists
-python scripts/bulk_artist_manager.py search --artists 10,20,30
+lidarr-bulk search --artists 10,20,30
 ```
 
 ## Error Handling

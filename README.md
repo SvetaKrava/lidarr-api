@@ -63,7 +63,7 @@ lidarr-search "Artist Name" [options]
 
 Options:
 
-- `--url`: Lidarr server URL (default: from config or <http://localhost:8686>)
+- `--url`: Lidarr server URL (default: from config or http://localhost:8686)
 - `--api-key`: Lidarr API key (default: from config)
 - `--timeout`: Request timeout in seconds (default: 60)
 - `--retries`: Number of retries for failed requests (default: 3)
@@ -78,11 +78,37 @@ Options:
 
 Additional utility scripts are available for advanced management:
 
-- **`lidarr-bulk`**: Bulk operations on artists (monitor, tag, search, export)
-- **`lidarr-maintenance`**: System maintenance (backups, blocklist, health checks)
-- **`lidarr-library`**: Library management (wanted albums, profiles, queue)
-- **`lidarr-monitor`**: Monitoring and health checks with alerting
-- **`lidarr-data`**: Data import/export and migration utilities
+- **`lidarr-bulk`**: Bulk operations on artists (monitor, unmonitor, tag, search, export, list-by-tag)
+- **`lidarr-maintenance`**: System maintenance (backup, blocklist, health checks)
+- **`lidarr-library`**: Library management (wanted albums, profiles, imports, queue)
+- **`lidarr-monitor`**: Monitoring and health checks (status, monitor, history, export)
+- **`lidarr-data`**: Data import/export utilities (export/import artists, config, wanted)
+
+Examples:
+
+```bash
+# Bulk operations
+lidarr-bulk monitor --artists 1,2,3,4
+lidarr-bulk export --output artists.json --format json
+
+# System maintenance
+lidarr-maintenance backup create
+lidarr-maintenance blocklist view
+lidarr-maintenance health
+
+# Library management
+lidarr-library wanted list
+lidarr-library profiles quality
+lidarr-library queue view
+
+# Monitoring
+lidarr-monitor status --verbose
+lidarr-monitor history --hours 48
+
+# Data utilities
+lidarr-data export artists --output artists.json --format json
+lidarr-data import artists --input artists.json --dry-run
+```
 
 See the [scripts documentation](scripts/README.md) for detailed usage information.
 
@@ -124,27 +150,20 @@ defaults = config.get_artist_defaults()
 
 ## Features
 
-- Complete Lidarr API coverage
-- Command-line interface for artist management
-- Configuration persistence
-- Automatic retry mechanism for failed requests
-- Rate limiting to prevent server overload
-- Configurable request timeouts
-- Comprehensive logging support
-- System status information
-- Artist search and management
-- Album management and releases
-- Calendar events
-- Quality profile management
-- Import list handling
-- Wanted/missing albums tracking
-- Queue management
-- History tracking
-- Tag management
-- Blocklist management
-- Disk space monitoring
-- Backup/restore operations
-- **Comprehensive utility scripts** for bulk operations, system maintenance, library management, monitoring, and data migration
+- **Complete Lidarr API coverage** - All major API endpoints supported
+- **Command-line interface** for artist management and search  
+- **Comprehensive utility scripts** for:
+  - Bulk operations (monitor, tag, search, export artists)
+  - System maintenance (backups, blocklist, health checks)  
+  - Library management (wanted albums, profiles, queue, imports)
+  - Monitoring and health checks with detailed reporting
+  - Data import/export and migration between instances
+- **Configuration persistence** - Save connection settings and defaults
+- **Automatic retry mechanism** with exponential backoff for failed requests
+- **Rate limiting** to prevent server overload (configurable, default 2.0 req/sec)
+- **Configurable request timeouts** (default 60 seconds)
+- **Comprehensive logging support** with debug capabilities
+- **Error handling** for network issues, authentication, and server errors
 
 ## Configuration Options
 
@@ -159,7 +178,7 @@ defaults = config.get_artist_defaults()
 
 ## Requirements
 
-- Python 3.6+
+- Python 3.10+
 - requests library
 
 ## Development
