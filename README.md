@@ -63,7 +63,7 @@ lidarr-search "Artist Name" [options]
 
 Options:
 
-- `--url`: Lidarr server URL (default: from config or http://localhost:8686)
+- `--url`: Lidarr server URL (default: from config or <http://localhost:8686>)
 - `--api-key`: Lidarr API key (default: from config)
 - `--timeout`: Request timeout in seconds (default: 60)
 - `--retries`: Number of retries for failed requests (default: 3)
@@ -110,7 +110,17 @@ lidarr-data export artists --output artists.json --format json
 lidarr-data import artists --input artists.json --dry-run
 ```
 
-See the [scripts documentation](scripts/README.md) for detailed usage information.
+All former standalone scripts have been integrated into the installed console commands.
+Use the provided executables (`lidarr-bulk`, `lidarr-maintenance`, `lidarr-library`, `lidarr-monitor`, `lidarr-data`, `lidarr-search`) instead of invoking files from a `scripts/` directory (which has been removed).
+Run any command with `--help` to see full usage, e.g.:
+
+```bash
+lidarr-bulk --help
+lidarr-maintenance --help
+lidarr-library wanted list --help
+lidarr-monitor status --help
+lidarr-data export artists --help
+```
 
 ### Configuration Management
 
@@ -151,10 +161,10 @@ defaults = config.get_artist_defaults()
 ## Features
 
 - **Complete Lidarr API coverage** - All major API endpoints supported
-- **Command-line interface** for artist management and search  
+- **Command-line interface** for artist management and search
 - **Comprehensive utility scripts** for:
   - Bulk operations (monitor, tag, search, export artists)
-  - System maintenance (backups, blocklist, health checks)  
+  - System maintenance (backups, blocklist, health checks)
   - Library management (wanted albums, profiles, queue, imports)
   - Monitoring and health checks with detailed reporting
   - Data import/export and migration between instances

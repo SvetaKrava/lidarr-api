@@ -336,10 +336,14 @@ def check_recent_history(client: LidarrClient, hours: int = 24) -> None:
     """Check recent download history for issues."""
     try:
         # Get history from the last N hours
-        since = datetime.now() - timedelta(hours=hours)
+        from datetime import timezone
+        since = datetime.now(timezone.utc) - timedelta(hours=hours)
+
+        # Fetch more records for longer time periods
+        page_size = min(1000, max(100, hours * 5))  # Scale page size with time period
 
         history = client.get_history(
-            page=1, page_size=100, sort_key="date", sort_dir="desc"
+            page=1, page_size=page_size
         )
         records = history.get("records", [])
 
@@ -347,16 +351,35 @@ def check_recent_history(client: LidarrClient, hours: int = 24) -> None:
         recent_records = []
         for record in records:
             try:
-                record_date = datetime.fromisoformat(
-                    record.get("date", "").replace("Z", "+00:00")
-                )
-                if record_date >= since.replace(tzinfo=record_date.tzinfo):
+                record_date_str = record.get("date", "")
+                if not record_date_str:
+                    continue
+
+                # Parse the date - handle both with and without timezone
+                if record_date_str.endswith('Z'):
+                    record_date = datetime.fromisoformat(record_date_str.replace("Z", "+00:00"))
+                elif '+' in record_date_str or record_date_str.count('-') > 2:
+                    # Already has timezone info
+                    record_date = datetime.fromisoformat(record_date_str)
+                else:
+                    # Assume UTC if no timezone specified
+                    parsed_dt = datetime.fromisoformat(record_date_str)
+                    record_date = parsed_dt.replace(tzinfo=timezone.utc)
+
+                if record_date >= since:
                     recent_records.append(record)
-            except (ValueError, TypeError, KeyError):
+            except (ValueError, TypeError, AttributeError):
+                # Skip records with invalid dates
                 continue
 
         if not recent_records:
-            print(f"No history items found in the last {hours} hours")
+            # Format time period for display
+            if hours % 24 == 0 and hours >= 24:
+                time_desc = f"{hours // 24} day{'s' if hours // 24 != 1 else ''}"
+            else:
+                time_desc = f"{hours} hour{'s' if hours != 1 else ''}"
+            print(f"No history items found in the last {time_desc}")
+            print(f"(Checked {len(records)} total records from API)")
             return
 
         # Analyze recent history
@@ -368,10 +391,41 @@ def check_recent_history(client: LidarrClient, hours: int = 24) -> None:
             [r for r in recent_records if r.get("eventType") == "downloadFailed"]
         )
 
-        print(f"Recent Activity (last {hours} hours):")
+        # Format time period for display
+        if hours % 24 == 0 and hours >= 24:
+            time_desc = f"{hours // 24} day{'s' if hours // 24 != 1 else ''}"
+        else:
+            time_desc = f"{hours} hour{'s' if hours != 1 else ''}"
+
+        print(f"Recent Activity (last {time_desc}):")
         print(f"  Grabbed: {grabbed}")
         print(f"  Imported: {imported}")
         print(f"  Failed: {failed}")
+
+        if imported > 0:
+            print("\nRecent Imports:")
+            imported_items = [
+                r for r in recent_records if r.get("eventType") == "trackFileImported"
+            ][:10]
+            for item in imported_items:
+                artist = (
+                    item.get("artist", {}).get("artistName", "Unknown")
+                    if item.get("artist")
+                    else "Unknown"
+                )
+                album = (
+                    item.get("album", {}).get("title", "Unknown")
+                    if item.get("album")
+                    else "Unknown"
+                )
+                date = item.get("date", "Unknown")
+                try:
+                    date_obj = datetime.fromisoformat(date.replace("Z", "+00:00"))
+                    date = date_obj.strftime("%Y-%m-%d %H:%M")
+                except (ValueError, TypeError):
+                    pass
+
+                print(f"  ✓ [{date}] {artist} - {album}")
 
         if failed > 0:
             print("\nRecent Failures:")
@@ -397,11 +451,6 @@ def check_recent_history(client: LidarrClient, hours: int = 24) -> None:
                     pass
 
                 print(f"  ✗ [{date}] {artist} - {album}")
-
-        # Success rate
-        total_attempts = grabbed
-        success_rate = (imported / total_attempts * 100) if total_attempts > 0 else 0
-        print(f"\nSuccess Rate: {success_rate:.1f}% ({imported}/{total_attempts})")
 
     except (ConnectionError, ValueError, KeyError) as e:
         print(f"Error checking recent history: {e}")
@@ -530,8 +579,12 @@ Examples:
     history_parser = subparsers.add_parser(
         "history", help="Check recent download history"
     )
-    history_parser.add_argument(
+    time_group = history_parser.add_mutually_exclusive_group()
+    time_group.add_argument(
         "--hours", type=int, default=24, help="Hours to look back (default: 24)"
+    )
+    time_group.add_argument(
+        "--days", type=int, help="Days to look back (alternative to --hours)"
     )
 
     # Export command
@@ -573,7 +626,9 @@ Examples:
             monitor_queue_continuously(client, args.interval, args.max_failed)
 
         elif args.command == "history":
-            check_recent_history(client, args.hours)
+            # Convert days to hours if --days was used
+            hours = args.days * 24 if args.days else args.hours
+            check_recent_history(client, hours)
 
         elif args.command == "export":
             export_health_report(client, args.output)
