@@ -78,7 +78,6 @@ Options:
 
 Additional utility scripts are available for advanced management:
 
-- **`lidarr-bulk`**: Bulk operations on artists (monitor, unmonitor, tag, search, export, list-by-tag)
 - **`lidarr-maintenance`**: System maintenance (backup, blocklist, health checks)
 - **`lidarr-library`**: Library management (wanted albums, profiles, imports, queue)
 - **`lidarr-monitor`**: Monitoring and health checks (status, monitor, history, export)
@@ -87,10 +86,6 @@ Additional utility scripts are available for advanced management:
 Examples:
 
 ```bash
-# Bulk operations
-lidarr-bulk monitor --artists 1,2,3,4
-lidarr-bulk export --output artists.json --format json
-
 # System maintenance
 lidarr-maintenance backup create
 lidarr-maintenance blocklist view
@@ -111,11 +106,10 @@ lidarr-data import artists --input artists.json --dry-run
 ```
 
 All former standalone scripts have been integrated into the installed console commands.
-Use the provided executables (`lidarr-bulk`, `lidarr-maintenance`, `lidarr-library`, `lidarr-monitor`, `lidarr-data`, `lidarr-search`) instead of invoking files from a `scripts/` directory (which has been removed).
+Use the provided executables (`lidarr-maintenance`, `lidarr-library`, `lidarr-monitor`, `lidarr-data`, `lidarr-search`) instead of invoking files from a `scripts/` directory (which has been removed).
 Run any command with `--help` to see full usage, e.g.:
 
 ```bash
-lidarr-bulk --help
 lidarr-maintenance --help
 lidarr-library wanted list --help
 lidarr-monitor status --help
@@ -163,7 +157,6 @@ defaults = config.get_artist_defaults()
 - **Complete Lidarr API coverage** - All major API endpoints supported
 - **Command-line interface** for artist management and search
 - **Comprehensive utility scripts** for:
-  - Bulk operations (monitor, tag, search, export artists)
   - System maintenance (backups, blocklist, health checks)
   - Library management (wanted albums, profiles, queue, imports)
   - Monitoring and health checks with detailed reporting

@@ -39,7 +39,6 @@ responses = "^0.25.0"
 
 [tool.poetry.scripts]
 lidarr-search = "lidarr_api.cli:cli_main"
-lidarr-bulk = "lidarr_api.bulk_artist_manager:cli_main"
 lidarr-maintenance = "lidarr_api.system_maintenance:cli_main"
 lidarr-library = "lidarr_api.library_manager:cli_main"
 lidarr-monitor = "lidarr_api.monitoring:cli_main"
