@@ -43,12 +43,12 @@ def setup_client(args: argparse.Namespace) -> LidarrClient:
 
 def export_artists_json(
     client: LidarrClient,
-    output_file: str,
+    output_file: str = None,
     include_albums: bool = False,
 ) -> None:
     """Export artists to JSON format."""
     try:
-        print("Fetching artists...")
+        print("Fetching artists...", file=sys.stderr)
         artists = client.get_all_artists()
 
         export_data = []
@@ -83,27 +83,38 @@ def export_artists_json(
                         'foreignAlbumId': album.get('foreignAlbumId')
                     } for album in albums]
                 except (KeyError, AttributeError, RuntimeError) as e:
-                    print(f"Warning: Failed to get albums for {artist.get('artistName')}: {e}")
+                    artist_name = artist.get('artistName', 'Unknown')
+                    print(f"Warning: Failed to get albums for {artist_name}: {e}", file=sys.stderr)
                     artist_data['albums'] = []
 
             export_data.append(artist_data)
 
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(export_data, f, indent=2, ensure_ascii=False)
-
-        print(f"Exported {len(export_data)} artists to {output_file}")
+        # Write to file or stdout
+        if output_file:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(export_data, f, indent=2, ensure_ascii=False)
+            print(f"Exported {len(export_data)} artists to {output_file}", file=sys.stderr)
+        else:
+            json.dump(export_data, sys.stdout, indent=2, ensure_ascii=False)
+            print(f"Exported {len(export_data)} artists to stdout", file=sys.stderr)
 
     except (OSError, json.JSONDecodeError) as e:
-        print(f"Error exporting artists to JSON: {e}")
+        print(f"Error exporting artists to JSON: {e}", file=sys.stderr)
 
 
-def export_artists_csv(client: LidarrClient, output_file: str) -> None:
+def export_artists_csv(client: LidarrClient, output_file: str = None) -> None:
     """Export artists to CSV format."""
     try:
-        print("Fetching artists...")
+        print("Fetching artists...", file=sys.stderr)
         artists = client.get_all_artists()
 
-        with open(output_file, 'w', newline='', encoding='utf-8') as f:
+        # Determine output destination
+        if output_file:
+            f = open(output_file, 'w', newline='', encoding='utf-8')
+        else:
+            f = sys.stdout
+
+        try:
             fieldnames = [
                 'foreignArtistId', 'artistName', 'sortName', 'disambiguation',
                 'artistType', 'status', 'ended', 'genres', 'monitored',
@@ -138,19 +149,31 @@ def export_artists_csv(client: LidarrClient, output_file: str) -> None:
                     'tags': tags
                 })
 
-        print(f"Exported {len(artists)} artists to {output_file}")
+            if output_file:
+                print(f"Exported {len(artists)} artists to {output_file}", file=sys.stderr)
+            else:
+                print(f"Exported {len(artists)} artists to stdout", file=sys.stderr)
+
+        finally:
+            if output_file:
+                f.close()
 
     except (OSError, csv.Error) as e:
-        print(f"Error exporting artists to CSV: {e}")
+        print(f"Error exporting artists to CSV: {e}", file=sys.stderr)
 
 
-def import_artists_from_json(client: LidarrClient, input_file: str, dry_run: bool = False) -> None:
-    """Import artists from JSON file."""
+def import_artists_from_json(
+    client: LidarrClient, input_file: str = None, dry_run: bool = False
+) -> None:
+    """Import artists from JSON file or stdin."""
     try:
-        print(f"Reading artists from {input_file}...")
-
-        with open(input_file, 'r', encoding='utf-8') as f:
-            artists_data = json.load(f)
+        if input_file:
+            print(f"Reading artists from {input_file}...", file=sys.stderr)
+            with open(input_file, 'r', encoding='utf-8') as f:
+                artists_data = json.load(f)
+        else:
+            print("Reading artists from stdin...", file=sys.stderr)
+            artists_data = json.load(sys.stdin)
 
         if not isinstance(artists_data, list):
             print("Error: JSON file should contain a list of artists")
@@ -231,7 +254,7 @@ def import_artists_from_json(client: LidarrClient, input_file: str, dry_run: boo
                     error_count += 1
 
         action = "Would add" if dry_run else "Added"
-        print(f"\nSummary:")
+        print("\nSummary:")
         print(f"  {action}: {added_count} artists")
         print(f"  Skipped: {skipped_count} artists")
         if error_count > 0:
@@ -244,10 +267,10 @@ def import_artists_from_json(client: LidarrClient, input_file: str, dry_run: boo
         print(f"Error importing artists from JSON: {e}")
 
 
-def export_configuration(client: LidarrClient, output_file: str) -> None:
+def export_configuration(client: LidarrClient, output_file: str = None) -> None:
     """Export Lidarr configuration (profiles, tags, etc.) to JSON."""
     try:
-        print("Exporting configuration...")
+        print("Exporting configuration...", file=sys.stderr)
 
         config_data = {
             'export_timestamp': client.get_system_status().get('startTime'),
@@ -261,54 +284,67 @@ def export_configuration(client: LidarrClient, output_file: str) -> None:
         # Export quality profiles
         try:
             config_data['quality_profiles'] = client.get_quality_profiles()
-            print(f"  Exported {len(config_data['quality_profiles'])} quality profiles")
+            profile_count = len(config_data['quality_profiles'])
+            print(f"  Exported {profile_count} quality profiles", file=sys.stderr)
         except (OSError, RuntimeError, KeyError) as e:
-            print(f"  Warning: Failed to export quality profiles: {e}")
+            print(f"  Warning: Failed to export quality profiles: {e}", file=sys.stderr)
 
         # Export metadata profiles
         try:
             config_data['metadata_profiles'] = client.get_metadata_profiles()
-            print(f"  Exported {len(config_data['metadata_profiles'])} metadata profiles")
+            metadata_count = len(config_data['metadata_profiles'])
+            print(f"  Exported {metadata_count} metadata profiles", file=sys.stderr)
         except (OSError, RuntimeError, KeyError) as e:
-            print(f"  Warning: Failed to export metadata profiles: {e}")
+            print(f"  Warning: Failed to export metadata profiles: {e}", file=sys.stderr)
 
         # Export tags
         try:
             config_data['tags'] = client.get_tags()
-            print(f"  Exported {len(config_data['tags'])} tags")
+            print(f"  Exported {len(config_data['tags'])} tags", file=sys.stderr)
         except (OSError, RuntimeError, KeyError) as e:
-            print(f"  Warning: Failed to export tags: {e}")
+            print(f"  Warning: Failed to export tags: {e}", file=sys.stderr)
 
         # Export root folders
         try:
             config_data['root_folders'] = client.get_root_folders()
-            print(f"  Exported {len(config_data['root_folders'])} root folders")
+            root_count = len(config_data['root_folders'])
+            print(f"  Exported {root_count} root folders", file=sys.stderr)
         except (OSError, RuntimeError, KeyError) as e:
-            print(f"  Warning: Failed to export root folders: {e}")
+            print(f"  Warning: Failed to export root folders: {e}", file=sys.stderr)
 
         # Export import lists
         try:
             config_data['import_lists'] = client.get_import_lists()
-            print(f"  Exported {len(config_data['import_lists'])} import lists")
+            import_count = len(config_data['import_lists'])
+            print(f"  Exported {import_count} import lists", file=sys.stderr)
         except (OSError, RuntimeError, KeyError) as e:
-            print(f"  Warning: Failed to export import lists: {e}")
+            print(f"  Warning: Failed to export import lists: {e}", file=sys.stderr)
 
-        with open(output_file, 'w', encoding='utf-8') as f:
-            json.dump(config_data, f, indent=2, ensure_ascii=False)
-
-        print(f"\nConfiguration exported to {output_file}")
+        # Write to file or stdout
+        if output_file:
+            with open(output_file, 'w', encoding='utf-8') as f:
+                json.dump(config_data, f, indent=2, ensure_ascii=False)
+            print(f"\nConfiguration exported to {output_file}", file=sys.stderr)
+        else:
+            json.dump(config_data, sys.stdout, indent=2, ensure_ascii=False)
+            print("\nConfiguration exported to stdout", file=sys.stderr)
 
     except (OSError, json.JSONDecodeError, RuntimeError, KeyError) as e:
-        print(f"Error exporting configuration: {e}")
+        print(f"Error exporting configuration: {e}", file=sys.stderr)
 
 
-def import_tags_from_config(client: LidarrClient, config_file: str, dry_run: bool = False) -> None:
-    """Import tags from a configuration file."""
+def import_tags_from_config(
+    client: LidarrClient, config_file: str = None, dry_run: bool = False
+) -> None:
+    """Import tags from a configuration file or stdin."""
     try:
-        print(f"Reading configuration from {config_file}...")
-
-        with open(config_file, 'r', encoding='utf-8') as f:
-            config_data = json.load(f)
+        if config_file:
+            print(f"Reading configuration from {config_file}...", file=sys.stderr)
+            with open(config_file, 'r', encoding='utf-8') as f:
+                config_data = json.load(f)
+        else:
+            print("Reading configuration from stdin...", file=sys.stderr)
+            config_data = json.load(sys.stdin)
 
         tags_to_import = config_data.get('tags', [])
         if not tags_to_import:
@@ -344,7 +380,7 @@ def import_tags_from_config(client: LidarrClient, config_file: str, dry_run: boo
                     print(f"Error creating tag '{label}': {e}")
 
         action = "Would create" if dry_run else "Created"
-        print(f"\nSummary:")
+        print("\nSummary:")
         print(f"  {action}: {added_count} tags")
         print(f"  Skipped: {skipped_count} tags")
 
@@ -355,10 +391,12 @@ def import_tags_from_config(client: LidarrClient, config_file: str, dry_run: boo
         print(f"Error importing tags: {e}")
 
 
-def export_wanted_albums(client: LidarrClient, output_file: str, format_type: str = 'json') -> None:
+def export_wanted_albums(
+    client: LidarrClient, output_file: str = None, format_type: str = 'json'
+) -> None:
     """Export wanted albums list."""
     try:
-        print("Fetching wanted albums...")
+        print("Fetching wanted albums...", file=sys.stderr)
 
         all_wanted = []
         page = 1
@@ -379,11 +417,20 @@ def export_wanted_albums(client: LidarrClient, output_file: str, format_type: st
             page += 1
 
         if format_type.lower() == 'json':
-            with open(output_file, 'w', encoding='utf-8') as f:
-                json.dump(all_wanted, f, indent=2, ensure_ascii=False)
+            if output_file:
+                with open(output_file, 'w', encoding='utf-8') as f:
+                    json.dump(all_wanted, f, indent=2, ensure_ascii=False)
+            else:
+                json.dump(all_wanted, sys.stdout, indent=2, ensure_ascii=False)
 
         elif format_type.lower() == 'csv':
-            with open(output_file, 'w', newline='', encoding='utf-8') as f:
+            # Determine output destination
+            if output_file:
+                f = open(output_file, 'w', newline='', encoding='utf-8')
+            else:
+                f = sys.stdout
+
+            try:
                 if all_wanted:
                     fieldnames = [
                         'artistName',
@@ -410,11 +457,17 @@ def export_wanted_albums(client: LidarrClient, output_file: str, format_type: st
                             'monitored': album.get('monitored', ''),
                             'foreignAlbumId': album.get('foreignAlbumId', '')
                         })
+            finally:
+                if output_file:
+                    f.close()
 
-        print(f"Exported {len(all_wanted)} wanted albums to {output_file}")
+        if output_file:
+            print(f"Exported {len(all_wanted)} wanted albums to {output_file}", file=sys.stderr)
+        else:
+            print(f"Exported {len(all_wanted)} wanted albums to stdout", file=sys.stderr)
 
     except (OSError, json.JSONDecodeError, csv.Error, RuntimeError, KeyError) as e:
-        print(f"Error exporting wanted albums: {e}")
+        print(f"Error exporting wanted albums: {e}", file=sys.stderr)
 
 
 def main() -> int:
@@ -424,27 +477,42 @@ def main() -> int:
         formatter_class=argparse.RawDescriptionHelpFormatter,
         epilog="""
 Examples:
-  # Export artists to JSON
+  # Export artists to JSON file
   %(prog)s export artists --output artists.json --format json
 
-  # Export artists with albums
+  # Export artists to stdout (pipe-friendly)
+  %(prog)s export artists --format json
+
+  # Export artists with albums to file
   %(prog)s export artists --output artists.json --format json --include-albums
 
-  # Export to CSV
-  %(prog)s export artists --output artists.csv --format csv
+  # Export to CSV and pipe to another command
+  %(prog)s export artists --format csv | head -10
 
-  # Import artists (dry run first)
+  # Import artists from file (dry run first)
   %(prog)s import artists --input artists.json --dry-run
   %(prog)s import artists --input artists.json --execute
 
-  # Export configuration
+  # Import artists from stdin via pipe
+  cat artists.json | %(prog)s import artists --execute
+
+  # Export configuration to stdout
+  %(prog)s export config
+
+  # Export configuration to file
   %(prog)s export config --output config.json
 
-  # Import tags from config
+  # Import tags from config file
   %(prog)s import tags --input config.json --dry-run
 
-  # Export wanted albums
-  %(prog)s export wanted --output wanted.json --format json
+  # Import tags from stdin
+  cat config.json | %(prog)s import tags --execute
+
+  # Export wanted albums and pipe to grep
+  %(prog)s export wanted --format csv | grep "Rock"
+
+  # Chain operations: export from one instance, import to another
+  lidarr-data export artists | lidarr-data import artists --execute
         """
     )
 
@@ -462,7 +530,9 @@ Examples:
 
     # Export artists
     export_artists_parser = export_subparsers.add_parser('artists', help='Export artists')
-    export_artists_parser.add_argument('--output', required=True, help='Output file path')
+    export_artists_parser.add_argument(
+        '--output', help='Output file path (default: stdout)'
+    )
     export_artists_parser.add_argument(
         '--format',
         choices=['json', 'csv'],
@@ -477,11 +547,15 @@ Examples:
 
     # Export configuration
     export_config_parser = export_subparsers.add_parser('config', help='Export configuration')
-    export_config_parser.add_argument('--output', required=True, help='Output file path')
+    export_config_parser.add_argument(
+        '--output', help='Output file path (default: stdout)'
+    )
 
     # Export wanted
     export_wanted_parser = export_subparsers.add_parser('wanted', help='Export wanted albums')
-    export_wanted_parser.add_argument('--output', required=True, help='Output file path')
+    export_wanted_parser.add_argument(
+        '--output', help='Output file path (default: stdout)'
+    )
     export_wanted_parser.add_argument(
         '--format',
         choices=['json', 'csv'],
@@ -495,7 +569,9 @@ Examples:
 
     # Import artists
     import_artists_parser = import_subparsers.add_parser('artists', help='Import artists')
-    import_artists_parser.add_argument('--input', required=True, help='Input JSON file path')
+    import_artists_parser.add_argument(
+        '--input', help='Input JSON file path (default: stdin)'
+    )
     import_group = import_artists_parser.add_mutually_exclusive_group(required=True)
     import_group.add_argument(
         '--dry-run',
@@ -506,7 +582,9 @@ Examples:
 
     # Import tags
     import_tags_parser = import_subparsers.add_parser('tags', help='Import tags from config')
-    import_tags_parser.add_argument('--input', required=True, help='Input config JSON file path')
+    import_tags_parser.add_argument(
+        '--input', help='Input config JSON file path (default: stdin)'
+    )
     import_tags_group = import_tags_parser.add_mutually_exclusive_group(required=True)
     import_tags_group.add_argument(
         '--dry-run',
