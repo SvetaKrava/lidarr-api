@@ -29,7 +29,7 @@ packages = [{include = "lidarr_api"}]
 [tool.poetry.dependencies]
 python = "^3.10"
 requests = "^2.32.0"
-urllib3 = "~2.6.0"
+urllib3 = "~2.6.3"
 typing-extensions = "^4.15.0"
 
 [tool.poetry.group.dev.dependencies]
