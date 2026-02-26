@@ -35,7 +35,7 @@ typing-extensions = "^4.15.0"
 [tool.poetry.group.dev.dependencies]
 pytest = "^9.0.1"
 pytest-mock = "^3.15.0"
-responses = "^0.25.0"
+responses = "^0.26.0"
 
 [tool.poetry.scripts]
 lidarr-search = "lidarr_api.cli:cli_main"
